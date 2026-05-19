@@ -371,7 +371,7 @@ function getStorageInfo(){
   }catch(e){return{saved:false,size:0,when:null};}
 }
 function formatBytes(b){if(b<1024)return b+' B';if(b<1024*1024)return (b/1024).toFixed(1)+' KB';return (b/1024/1024).toFixed(2)+' MB';}
-function applyTheme(){const LEGACY={sage:'library',sunset:'library',midnight:'cathedral',nature:'cozy'};const a=me();let t=(a&&a.theme)||'library';let m=(a&&a.mode)||'light';t=LEGACY[t]||t;if(S.profileEdit&&S.selectedProfileId===S.activeId){let pt=S.profileEdit.theme||t;let pm=S.profileEdit.mode||m;pt=LEGACY[pt]||pt;t=pt;m=pm;}document.documentElement.setAttribute('data-theme',t);document.documentElement.setAttribute('data-mode',m);}
+function applyTheme(){const LEGACY={sage:'library',sunset:'library',midnight:'cathedral',nature:'cozy'};const FSTACKS={atkinson:"'Atkinson Hyperlegible',sans-serif",lexend:"'Lexend',sans-serif",opendyslexic:"'OpenDyslexic',sans-serif",comicneue:"'Comic Neue','Comic Sans MS',cursive",arial:'Arial,sans-serif',verdana:'Verdana,Geneva,sans-serif'};const a=me();let t=(a&&a.theme)||'library';let m=(a&&a.mode)||'light';let f=(a&&a.font)||'system';let ls=(a&&a.letterSpacing)||'0';let lh=(a&&a.lineHeight)||'1.5';let sb=(a&&a.scrollbars)||'visible';t=LEGACY[t]||t;if(S.profileEdit&&S.selectedProfileId===S.activeId){let pt=S.profileEdit.theme||t;let pm=S.profileEdit.mode||m;let pf=S.profileEdit.font||f;let pls=S.profileEdit.letterSpacing||ls;let plh=S.profileEdit.lineHeight||lh;let psb=S.profileEdit.scrollbars||sb;pt=LEGACY[pt]||pt;t=pt;m=pm;f=pf;ls=pls;lh=plh;sb=psb;}document.documentElement.setAttribute('data-theme',t);document.documentElement.setAttribute('data-mode',m);const fs=FSTACKS[f];if(fs){document.documentElement.style.setProperty('--font-body',fs);document.documentElement.style.setProperty('--font-serif',fs);}else{document.documentElement.style.removeProperty('--font-body');document.documentElement.style.removeProperty('--font-serif');}document.documentElement.style.setProperty('--ls-body',ls);document.documentElement.style.setProperty('--lh-body',lh);document.body.classList.toggle('hide-scrollbars',sb==='hidden');}
 function render(){applyTheme();document.getElementById('root').innerHTML=buildApp();queueSave();updateSaveIndicator();if(S.bookId)requestAnimationFrame(initBookCanvases);}
 function rc(){
   applyTheme();
@@ -910,6 +910,29 @@ const THEMES=[
   {id:'journal',label:'Journal',swatches:['#5C4832','#F5F0E6','#4A5C4A']},
   {id:'cathedral',label:'Cathedral',swatches:['#7A6A52','#F8F7F5','#A09280']},
 ];
+const FONTS=[
+  {id:'system',label:'System default',stack:null},
+  {id:'atkinson',label:'Atkinson Hyperlegible',stack:"'Atkinson Hyperlegible',sans-serif"},
+  {id:'lexend',label:'Lexend',stack:"'Lexend',sans-serif"},
+  {id:'opendyslexic',label:'OpenDyslexic',stack:"'OpenDyslexic',sans-serif"},
+  {id:'comicneue',label:'Comic Neue',stack:"'Comic Neue','Comic Sans MS',cursive"},
+  {id:'arial',label:'Arial',stack:'Arial,sans-serif'},
+  {id:'verdana',label:'Verdana',stack:'Verdana,Geneva,sans-serif'},
+];
+const LS_PRESETS=[
+  {val:'-0.01em',label:'Tight'},
+  {val:'0',label:'Normal'},
+  {val:'0.04em',label:'Loose'},
+  {val:'0.08em',label:'Extra Loose'},
+  {val:'0.15em',label:'Maximum'},
+];
+const LH_PRESETS=[
+  {val:'1.2',label:'Tight'},
+  {val:'1.5',label:'Normal'},
+  {val:'1.7',label:'Comfortable'},
+  {val:'2.0',label:'Loose'},
+  {val:'2.4',label:'Extra Loose'},
+];
 function buildPreferences(){
   const a=me();
   const prefs=a.prefs||{};
@@ -965,7 +988,7 @@ function prefUpdateAlter(field,val){
   const a=me();if(!a)return;
   a[field]=val;
   queueSave();
-  if(field==='theme'||field==='mode'||field==='color')applyTheme();
+  if(field==='theme'||field==='mode'||field==='color'||field==='font'||field==='letterSpacing'||field==='lineHeight'||field==='scrollbars')applyTheme();
 }
 function prefUpdateNickname(val){
   const a=me();if(!a)return;
@@ -982,8 +1005,16 @@ function buildThemePicker(display,canEdit,direct){
   const rawTheme=display.theme||'library';
   const curTheme=LEGACY[rawTheme]||rawTheme;
   const curMode=display.mode||'light';
+  const curFont=display.font||'system';
+  const curLS=display.letterSpacing||'0';
+  const curLH=display.lineHeight||'1.5';
+  const curSB=display.scrollbars||'visible';
   const setTheme=direct?`prefUpdateAlter('theme',`:`pbuf('theme',`;
   const setMode =direct?`prefUpdateAlter('mode',` :`pbuf('mode',`;
+  const setFont =direct?`prefUpdateAlter('font',` :`pbuf('font',`;
+  const setLS   =direct?`prefUpdateAlter('letterSpacing',`:`pbuf('letterSpacing',`;
+  const setLH   =direct?`prefUpdateAlter('lineHeight',`:`pbuf('lineHeight',`;
+  const setSB   =direct?`prefUpdateAlter('scrollbars',`:`pbuf('scrollbars',`;
   const themeCards=THEMES.map(t=>{
     const on=curTheme===t.id;
     const dis=!canEdit;
@@ -996,9 +1027,38 @@ function buildThemePicker(display,canEdit,direct){
     <button class="mode-btn${curMode==='light'?' on':''}" ${canEdit?`onclick="${setMode}'light');rc()"`:''}>☀ Light</button>
     <button class="mode-btn${curMode==='dark'?' on':''}" ${canEdit?`onclick="${setMode}'dark');rc()"`:''}>☾ Dark</button>
   </div>`;
+  const fontPicker=`<div>
+    <div class="sec-lbl" style="margin-bottom:6px;">Reading font</div>
+    <div class="font-picker" style="${!canEdit?'opacity:.5;pointer-events:none;':''}">
+      ${FONTS.map(f=>`<button class="font-btn${curFont===f.id?' on':''}"${f.stack?` style="font-family:${f.stack};"`:''} ${canEdit?`onclick="${setFont}'${f.id}');rc()"`:''} title="${f.label}">${f.label}</button>`).join('')}
+    </div>
+  </div>`;
+  const lsPicker=`<div>
+    <div class="sec-lbl" style="margin-bottom:6px;">Letter spacing</div>
+    <div class="font-picker" style="${!canEdit?'opacity:.5;pointer-events:none;':''}">
+      ${LS_PRESETS.map(p=>`<button class="font-btn${curLS===p.val?' on':''}" ${canEdit?`onclick="${setLS}'${p.val}');rc()"`:''} title="${p.val}">${p.label}</button>`).join('')}
+    </div>
+  </div>`;
+  const lhPicker=`<div>
+    <div class="sec-lbl" style="margin-bottom:6px;">Line spacing</div>
+    <div class="font-picker" style="${!canEdit?'opacity:.5;pointer-events:none;':''}">
+      ${LH_PRESETS.map(p=>`<button class="font-btn${curLH===p.val?' on':''}" ${canEdit?`onclick="${setLH}'${p.val}');rc()"`:''} title="${p.val}">${p.label}</button>`).join('')}
+    </div>
+  </div>`;
+  const sbToggle=`<div>
+    <div class="sec-lbl" style="margin-bottom:6px;">Scrollbars</div>
+    <div class="mode-toggle" style="${!canEdit?'opacity:.5;pointer-events:none;':''}">
+      <button class="mode-btn${curSB==='visible'?' on':''}" ${canEdit?`onclick="${setSB}'visible');rc()"`:''}>Show</button>
+      <button class="mode-btn${curSB==='hidden'?' on':''}" ${canEdit?`onclick="${setSB}'hidden');rc()"`:''}>Hide</button>
+    </div>
+  </div>`;
   return`<div class="theme-picker">
     <div class="theme-grid">${themeCards}</div>
     ${modeToggle}
+    ${fontPicker}
+    ${lsPicker}
+    ${lhPicker}
+    ${sbToggle}
   </div>`;
 }
 function pbuf(f,v){if(!S.profileEdit)S.profileEdit=JSON.parse(JSON.stringify(ga(S.selectedProfileId)));S.profileEdit[f]=v;}
