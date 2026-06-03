@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>System Library</title>
+<style>
+:root{
+  --sage:#5C7A6E; --sage-l:#EAF0EE; --sage-m:#9BBCB0;
+  --warm:#C4855A; --warm-l:#F5EDE6;
+  --ink:#2A2A28; --ink-m:#5A5A56; --ink-s:#9A9A95;
+  --paper:#F9F6F0; --paper-d:#EEE9E0; --white:#FFFFFF;
+  --brd:rgba(92,122,110,0.15); --brd-s:rgba(92,122,110,0.30);
+  --r:14px; --rsm:9px;
+  --on-accent:#fff;
+  --serif:Georgia,'Times New Roman',serif;
+  --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body.dark{
+  --paper:#201E1B; --paper-d:#2A2723; --white:#2B2825;
+  --ink:#ECE7DE; --ink-m:#B7B1A6; --ink-s:#8B857B;
+  --warm:#D49A6E; --warm-l:#3A2E25;
+  --brd:rgba(255,255,255,0.10); --brd-s:rgba(255,255,255,0.20);
+}
+#root{}
+body{font-family:var(--sans);background:var(--paper);color:var(--ink);font-size:15px;line-height:1.6;height:100vh;overflow:hidden;}
+button{font-family:inherit;cursor:pointer;}
+input,textarea{font-family:inherit;font-size:15px;color:var(--ink);background:var(--paper);}
+
+/* top bar */
+.top{display:flex;align-items:center;gap:14px;padding:12px 20px;background:var(--white);border-bottom:1px solid var(--brd);}
+.brand{font-family:var(--serif);font-size:21px;color:var(--ink);}
+.top-sp{flex:1;}
+.front-chip{display:flex;align-items:center;gap:8px;background:var(--sage-l);border:1px solid var(--brd);border-radius:999px;padding:5px 12px 5px 6px;font-size:13px;color:var(--ink-m);}
+.front-chip .av{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;font-family:var(--serif);}
+.tbtn{background:var(--white);border:1px solid var(--brd-s);border-radius:var(--rsm);padding:8px 14px;font-size:13px;color:var(--ink-m);}
+.tbtn:hover{background:var(--paper);}
+.tbtn:disabled,.del:disabled{opacity:.4;cursor:not-allowed;}
+.tbtn-p{background:var(--sage);color:var(--on-accent);border:none;}
+.tbtn-p:hover{background:var(--sage);filter:brightness(1.05);}
+.tbtn-p:disabled:hover{filter:none;}
+
+/* layout */
+.shell{display:flex;height:calc(100vh - 57px);}
+.nav{display:flex;gap:4px;margin-left:6px;}
+.navb{background:transparent;border:none;padding:6px 13px;border-radius:999px;font-size:13px;color:var(--ink-m);}
+.navb.on{background:var(--sage-l);color:var(--ink);}
+.navb:hover{background:var(--paper-d);}
+.vscroll{height:calc(100vh - 57px);overflow-y:auto;}
+.vscroll::-webkit-scrollbar{width:12px;}
+.vscroll::-webkit-scrollbar-thumb{background:var(--brd-s);border-radius:6px;border:4px solid var(--paper);}
+.vscroll::-webkit-scrollbar-track{background:transparent;}
+.prompts-wrap{max-width:720px;margin:0 auto;padding:22px 26px 70px;}
+.mine-ans{background:var(--sage-l);border:1px solid var(--sage-m);border-radius:var(--rsm);padding:12px 14px;margin-top:4px;}
+.mine-ans-text{font-size:14px;color:var(--ink);white-space:pre-wrap;margin-top:6px;}
+.pcompose{background:var(--white);border:1px solid var(--brd-s);border-radius:var(--r);padding:16px 18px;}
+.pcompose textarea,.ans-mine textarea,.pcard textarea{width:100%;min-height:44px;resize:none;overflow:hidden;border:1px solid var(--brd-s);border-radius:var(--r);padding:10px 12px;outline:none;line-height:1.6;}
+.pcard{background:var(--white);border:1px solid var(--brd-s);border-radius:var(--r);padding:16px 18px;margin-top:16px;}
+.pcard-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}
+.pcard-title{font-family:var(--serif);font-size:18px;color:var(--ink);}
+.pcard-meta{font-size:12px;color:var(--ink-s);margin-top:2px;}
+.pcard-body{font-size:14px;color:var(--ink-m);margin-top:8px;white-space:pre-wrap;}
+.ans-list{margin-top:14px;border-top:1px solid var(--brd);padding-top:12px;display:flex;flex-direction:column;gap:10px;}
+.ans{font-size:13px;color:var(--ink-m);}
+.ans-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:middle;}
+.ans-eye{font-size:11px;color:var(--ink-s);font-style:italic;}
+.ans-text{margin-top:2px;white-space:pre-wrap;}
+.ans-mine{margin-top:14px;}
+.tcard{background:var(--paper);border:1px solid var(--brd);border-radius:var(--rsm);padding:12px 14px;margin-top:10px;}
+.tcard-q{font-weight:500;font-size:13px;color:var(--ink);}
+.ans-lbl{font-size:10px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--ink-s);margin-bottom:4px;}
+.pref-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 0;border-top:1px solid var(--brd);}
+.pref-row:first-of-type{border-top:none;}
+.pref-lbl{font-size:14px;color:var(--ink);}
+.tcard-a{font-size:14px;color:var(--ink-m);margin-top:4px;white-space:pre-wrap;}
+.thy-head{border-bottom:1px solid var(--brd);padding-bottom:14px;}
+.thy-title{font-family:var(--serif);font-size:24px;color:var(--ink);}
+.ans-mine-h{font-size:12px;color:var(--ink-s);margin-bottom:8px;}
+.pcompose textarea,.ans-mine textarea,.pcard textarea{font-size:15px;color:var(--ink);}
+.rank-edit-row{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--paper);border:1px solid var(--brd);border-radius:var(--rsm);padding:6px 11px;margin-bottom:6px;font-size:13px;color:var(--ink-m);}
+.rank-opt-input{flex:1;border:none;background:transparent;font-size:14px;color:var(--ink);outline:none;padding:2px 0;}
+.choice-list{display:flex;flex-direction:column;gap:6px;margin-top:4px;}
+.choice-opt{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--brd-s);border-radius:var(--rsm);background:var(--white);cursor:pointer;font-size:14px;color:var(--ink);}
+.choice-opt.on{border-color:var(--sage);background:var(--sage-l);}
+.cbox,.rbox{width:20px;height:20px;border:1.5px solid var(--ink-s);display:inline-flex;align-items:center;justify-content:center;font-size:12px;color:var(--sage);flex-shrink:0;line-height:1;}
+.cbox{border-radius:5px;}
+.rbox{border-radius:50%;font-size:9px;}
+.choice-opt.on .cbox,.choice-opt.on .rbox{border-color:var(--sage);}
+.choice-picked{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink);margin:3px 0;}
+.choice-picked .cbox{border-color:var(--sage);width:18px;height:18px;}
+.scale-ends{display:flex;justify-content:space-between;font-size:12px;color:var(--ink-s);margin-bottom:4px;}
+.scale-row{display:flex;gap:5px;flex-wrap:wrap;margin-top:2px;}
+.scale-btn{width:36px;height:36px;border:1px solid var(--brd-s);border-radius:8px;background:var(--white);cursor:pointer;font-size:14px;color:var(--ink);}
+.scale-btn.on{background:var(--sage);color:var(--on-accent);border-color:var(--sage);}
+.ans-scale{display:flex;align-items:baseline;gap:8px;margin-top:4px;}
+.scale-val{font-size:22px;font-weight:600;color:var(--sage);font-family:var(--serif);}
+.scale-of{font-size:13px;color:var(--ink-s);}
+.scale-lbl{font-size:12px;color:var(--ink-s);}
+.rank-list{display:flex;flex-direction:column;gap:6px;margin-top:8px;padding:4px 0;}
+.editbox{border:2px solid var(--sage-m);background:var(--sage-l);border-radius:var(--r);padding:12px 14px;}
+.editbox-h{font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--sage);margin-bottom:8px;}
+.editbox textarea{width:100%;min-height:44px;border:1px solid var(--brd-s);border-radius:var(--rsm);padding:10px 12px;outline:none;resize:none;overflow:hidden;line-height:1.6;font-size:15px;color:var(--ink);background:var(--white);}
+.editbox textarea:focus{border-color:var(--sage-m);}
+.rank-item{display:flex;align-items:center;gap:10px;background:var(--white);border:1px solid var(--brd-s);border-radius:var(--rsm);padding:9px 12px;cursor:grab;}
+.rank-item.drag{opacity:.45;}
+.rank-grip{color:var(--ink-s);font-size:15px;line-height:1;cursor:grab;user-select:none;pointer-events:none;}
+.rank-num{width:22px;height:22px;border-radius:50%;background:var(--sage-l);color:var(--ink);font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;pointer-events:none;}
+.rank-label{flex:1;font-size:14px;color:var(--ink);pointer-events:none;}
+.rank-ar{display:flex;flex-direction:column;gap:1px;}
+.rank-ar button{border:none;background:transparent;color:var(--ink-s);font-size:11px;line-height:1;padding:1px 4px;cursor:pointer;border-radius:4px;}
+.rank-ar button:hover:not(:disabled){background:var(--paper-d);color:var(--ink);}
+.rank-ar button:disabled{opacity:.25;cursor:default;}
+.rank-ord{display:flex;flex-direction:column;gap:7px;margin-top:6px;}
+.rank-ord-item{display:flex;align-items:center;gap:9px;font-size:14px;color:var(--ink-m);}
+.roster{width:280px;border-right:1px solid var(--brd);background:var(--white);display:flex;flex-direction:column;}
+.search{margin:14px;padding:10px 12px;border:1px solid var(--brd-s);border-radius:var(--rsm);background:var(--paper);outline:none;}
+.search:focus{border-color:var(--sage-m);}
+.rlist{flex:1;overflow-y:auto;padding:0 8px 12px;}
+.ritem{display:flex;align-items:center;gap:11px;padding:10px;border-radius:var(--rsm);cursor:pointer;}
+.ritem:hover{background:var(--paper);}
+.ritem.act{background:var(--sage-l);}
+.av{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-family:var(--serif);flex-shrink:0;overflow:hidden;}
+.av img{width:100%;height:100%;object-fit:cover;}
+.ri-name{font-size:14px;font-weight:500;}
+.ri-role{font-size:12px;color:var(--ink-s);}
+.front-dot{width:8px;height:8px;border-radius:50%;background:var(--sage);margin-left:auto;flex-shrink:0;}
+
+/* panel */
+.panel{flex:1;overflow-y:auto;padding:30px 40px 80px;}
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;color:var(--ink-s);gap:14px;}
+.phead{display:flex;align-items:flex-start;gap:18px;margin-bottom:22px;}
+.bigav{width:78px;height:78px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:600;font-family:var(--serif);flex-shrink:0;position:relative;}
+.bigav img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.bigav .edit{position:absolute;bottom:-2px;right:-2px;width:26px;height:26px;border-radius:50%;background:var(--white);border:1px solid var(--brd-s);font-size:12px;display:flex;align-items:center;justify-content:center;color:var(--ink-m);cursor:pointer;}
+.pname{font-family:var(--serif);font-size:28px;line-height:1.1;}
+.psub{display:flex;align-items:center;gap:9px;margin-top:8px;flex-wrap:wrap;font-size:13px;color:var(--ink-s);}
+.pill{font-size:12px;padding:3px 10px;border-radius:999px;}
+.pill-on{background:var(--sage);color:var(--on-accent);}
+.pill-off{background:var(--paper-d);color:var(--ink-m);cursor:pointer;}
+
+.seclbl{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:var(--ink-s);margin:22px 0 9px;}
+.eye{border:none;background:transparent;padding:2px;color:var(--sage);display:inline-flex;border-radius:6px;}
+.eye.off{color:var(--ink-s);}
+.eye:hover{background:var(--paper-d);}
+.priv-tag{font-size:10px;font-weight:600;color:var(--warm);background:var(--warm-l);padding:2px 7px;border-radius:999px;letter-spacing:.4px;}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.field label{display:block;font-size:12px;color:var(--ink-m);margin-bottom:5px;}
+.field input,.field textarea{width:100%;padding:10px 12px;border:1px solid var(--brd-s);border-radius:var(--rsm);background:var(--white);outline:none;}
+.field input:disabled,.field textarea:disabled{background:var(--paper);color:var(--ink-m);cursor:default;border-style:dashed;}
+.banner{font-size:13px;padding:9px 13px;border-radius:var(--rsm);margin:4px 0 18px;}
+.banner-edit{background:var(--sage-l);color:var(--ink-m);}
+.banner-view{background:var(--warm-l);color:var(--warm);}
+.sugg-list{display:flex;flex-direction:column;gap:8px;margin-bottom:6px;}
+.sugg{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--sage-l);border-radius:var(--rsm);padding:9px 12px;}
+.sugg-txt{font-size:13px;color:var(--ink-m);}
+.sugg-btns{display:flex;gap:6px;flex-shrink:0;}
+.add-row{display:flex;gap:8px;margin-top:9px;align-items:center;}
+.add-row .taginput,.add-row .add-btn{border-radius:var(--r);}
+.add-row .taginput{margin-top:0;flex:1;}
+.add-row .sel{appearance:none;-webkit-appearance:none;padding:10px 32px 10px 12px;border:1px solid var(--brd-s);border-radius:var(--r);background:var(--white) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239A9A95' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 11px center;color:var(--ink-m);font-family:var(--sans);font-size:15px;outline:none;cursor:pointer;}
+.add-row .sel:focus{border-color:var(--sage-m);}
+.cust-sel{position:relative;}
+.cust-sel .sel{text-align:left;}
+.sel-back{position:fixed;inset:0;z-index:8;}
+.sel-list{position:absolute;top:calc(100% + 5px);left:0;min-width:150px;background:var(--white);border:1px solid var(--brd-s);border-radius:var(--r);overflow:hidden;z-index:9;}
+.sel-opt{padding:10px 14px;font-size:14px;color:var(--ink-m);cursor:pointer;}
+.sel-opt:hover{background:var(--sage-l);color:var(--ink);}
+.sel-opt.on{background:var(--sage-l);color:var(--ink);}
+.add-btn{border:1px solid var(--brd-s);background:var(--white);border-radius:var(--rsm);padding:9px 14px;font-size:13px;color:var(--ink-m);white-space:nowrap;}
+.add-btn:hover{background:var(--paper);}
+.suggest-card{background:var(--sage-l);border:1px solid var(--sage-m);border-radius:var(--r);padding:14px 16px;margin:2px 0 22px;}
+.suggest-card-h{font-size:14px;font-weight:500;color:var(--ink);margin-bottom:10px;}
+.suggest-card .add-row{margin-top:0;}
+.suggest-card .taginput{background:var(--white);border-style:solid;}
+.field input:focus,.field textarea:focus{border-color:var(--sage-m);}
+.field textarea{min-height:64px;resize:none;overflow:hidden;line-height:1.6;}
+
+.cols{display:flex;gap:10px;flex-wrap:wrap;}
+.csw{width:30px;height:30px;border-radius:50%;cursor:pointer;border:3px solid transparent;}
+.csw.on{border-color:var(--ink);}
+.csw-custom{position:relative;overflow:hidden;background:conic-gradient(from 0deg,#C25B5B,#C4A86B,#7FAE73,#5E9E96,#7A9BC4,#9B86C4,#C48BB0,#C25B5B);display:flex;align-items:center;justify-content:center;}
+.csw-custom span{font-size:15px;font-weight:700;color:#fff;text-shadow:0 0 2px rgba(0,0,0,.55);pointer-events:none;line-height:1;}
+.csw-custom input{opacity:0;position:absolute;inset:0;width:100%;height:100%;cursor:pointer;border:none;padding:0;background:none;}
+
+.tags{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px;}
+.tag{background:var(--sage-l);color:var(--ink-m);font-size:13px;padding:4px 9px;border-radius:999px;display:flex;align-items:center;gap:6px;}
+.tag-x{cursor:pointer;color:var(--ink-s);font-weight:600;}
+.taginput{margin-top:9px;padding:9px 12px;border:1px dashed var(--brd-s);border-radius:var(--rsm);background:var(--paper);outline:none;width:100%;font-size:14px;}
+
+.danger{margin-top:34px;border-top:1px solid var(--brd);padding-top:16px;}
+.del{background:transparent;border:1px solid var(--warm);color:var(--warm);border-radius:var(--rsm);padding:8px 14px;font-size:13px;}
+
+/* modal */
+.ov{position:fixed;inset:0;background:rgba(40,40,38,.4);display:flex;align-items:center;justify-content:center;z-index:50;}
+.modal{background:var(--white);border-radius:var(--r);padding:24px;width:380px;max-width:92vw;}
+.modal h3{font-family:var(--serif);font-size:20px;margin-bottom:6px;}
+.modal p{font-size:13px;color:var(--ink-m);margin-bottom:16px;}
+.modal input{width:100%;padding:11px 13px;border:1px solid var(--brd-s);border-radius:var(--rsm);outline:none;margin-bottom:16px;}
+.modal-btns{display:flex;gap:10px;justify-content:flex-end;}
+.hide-sb::-webkit-scrollbar{width:8px;}
+.hide-sb::-webkit-scrollbar-thumb{background:var(--brd-s);border-radius:4px;}
+
+/* entry / lock screen */
+.entry{height:100vh;overflow-y:auto;padding:0 30px 50px;}
+.entry-top{position:sticky;top:0;background:var(--paper);z-index:2;display:flex;flex-direction:column;align-items:center;gap:12px;padding:14px 0 14px;}
+.entry-bar{display:flex;width:100%;align-items:center;gap:8px;margin-bottom:6px;}
+.entry-h{font-family:var(--serif);font-size:30px;color:var(--ink);}
+.entry-sub{font-size:14px;color:var(--ink-s);margin-top:-12px;}
+.entry-grid{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;max-width:760px;margin:0 auto;}
+.entry-card{display:flex;flex-direction:column;align-items:center;gap:9px;width:120px;padding:16px 10px;border:1px solid var(--brd);border-radius:var(--r);background:var(--white);cursor:pointer;}
+.entry-card:hover{border-color:var(--brd-s);background:var(--paper);}
+.entry-card .av{width:48px;height:48px;font-size:19px;}
+.entry-card .nm{font-size:14px;font-weight:500;text-align:center;}
+
+/* active + co-front chips */
+.act-chip{display:flex;align-items:center;gap:9px;background:var(--sage-l);border:1px solid var(--brd-s);border-radius:999px;padding:5px 16px 5px 6px;cursor:pointer;}
+.act-chip .av{width:28px;height:28px;font-size:13px;}
+.act-chip .lbl{font-size:11px;color:var(--ink-s);line-height:1;}
+.act-chip .nm{font-size:14px;font-weight:500;line-height:1.2;}
+.co-chip{display:flex;align-items:center;gap:7px;background:var(--paper-d);border-radius:999px;padding:4px 8px 4px 5px;}
+.co-chip .av{width:24px;height:24px;font-size:11px;}
+.ico-btn{border:1px solid var(--brd-s);background:var(--white);border-radius:8px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--ink-m);}
+.ico-btn:hover{background:var(--paper);}
+.convo{display:flex;flex-direction:column;flex:1;min-width:0;height:calc(100vh - 57px);}
+.convo-head{padding:13px 24px;border-bottom:1px solid var(--brd);background:var(--white);flex-shrink:0;}
+.msg-list{flex:1;overflow-y:auto;padding:22px 24px;display:flex;flex-direction:column;gap:10px;}
+.msg{max-width:78%;padding:9px 13px;border-radius:15px;font-size:14px;line-height:1.5;white-space:pre-wrap;word-break:break-word;}
+.msg.me{background:var(--sage);color:var(--on-accent);border-bottom-right-radius:5px;}
+.msg.them{background:var(--white);border:1px solid var(--brd-s);color:var(--ink);border-bottom-left-radius:5px;}
+.msg-who{font-size:11px;color:var(--ink-s);margin:0 6px 2px;}
+.msg{cursor:pointer;}
+.msg-meta{font-size:11px;color:var(--ink-s);margin:3px 6px 2px;}
+.msg-act{color:var(--sage);cursor:pointer;text-decoration:underline;}
+.msg-act:hover{filter:brightness(.9);}
+.msg-divider{display:flex;align-items:center;gap:10px;margin:8px 4px;color:var(--ink-s);font-size:11px;}
+.msg-divider::before,.msg-divider::after{content:'';flex:1;height:1px;background:var(--brd);}
+.unread-badge{min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--warm);color:#fff;font-size:11px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:6px;}
+.nav-dot{width:7px;height:7px;border-radius:50%;background:var(--warm);display:inline-block;margin-left:5px;vertical-align:middle;}
+.lnk{cursor:pointer;text-decoration:underline;text-decoration-color:var(--brd-s);text-underline-offset:2px;}
+.lnk:hover{color:var(--sage);text-decoration-color:var(--sage-m);}
+.msg-receipt{font-size:10px;color:var(--ink-s);margin:3px 6px 0;font-style:italic;}
+.msg-time{font-size:10px;opacity:.55;margin-top:4px;}
+.compose-bar{border-top:1px solid var(--brd);background:var(--white);padding:12px 18px;display:flex;gap:10px;align-items:flex-end;flex-shrink:0;}
+.compose-bar textarea{flex:1;min-height:42px;max-height:150px;resize:none;overflow-y:auto;border:1px solid var(--brd-s);border-radius:var(--r);padding:10px 12px;outline:none;line-height:1.5;}
+.compose-bar textarea:focus{border-color:var(--sage-m);}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div id="mods"></div>
+<input type="file" id="fileImp" accept="application/json" style="display:none;">
+<input type="file" id="photoImp" accept="image/*" style="display:none;">
+
+<script>
+/* ============ DATA ============ */
+const KEY='system_library_clean_v1';
+const COLORS=['#5C7A6E','#C4855A','#7A9BC4','#9B86C4','#C4A86B','#7FAE73','#C48BB0','#7E94A8','#C25B5B','#5E9E96'];
+const PRIV_FIELDS=['pronouns','role','age','traits','notes','triggers','comforts'];
+
+let S={alters:[],selId:null,frontId:null,coId:null,search:'',entrySearch:'',view:'profiles',prompts:[],threads:[]};
+
+function load(){
+  try{const raw=localStorage.getItem(KEY);if(raw){const d=JSON.parse(raw);S.alters=d.alters||[];S.frontId=d.frontId||null;S.coId=d.coId||null;S.prompts=d.prompts||[];S.threads=d.threads||[];}}catch(e){}
+}
+function save(){
+  try{localStorage.setItem(KEY,JSON.stringify({alters:S.alters,frontId:S.frontId,coId:S.coId,prompts:S.prompts,threads:S.threads}));}catch(e){}
+}
+function uid(){return 'a-'+Date.now()+'-'+Math.random().toString(36).slice(2,6);}
+function sel(){return S.alters.find(a=>a.id===S.selId)||null;}
+function sorted(){return [...S.alters].sort((a,b)=>(a.name||'').localeCompare(b.name||''));}
+function ini(n){return (n||'?').trim().charAt(0).toUpperCase();}
+function esc(s){return (''+(s==null?'':s)).replace(/&/g,'&amp;').replace(/</g,'&lt;');}
+function isDark(){return document.body.classList.contains('dark');}
+function lighten(hex,amt){hex=(hex||'#5C7A6E').replace('#','');if(hex.length===3)hex=hex.split('').map(x=>x+x).join('');let r=parseInt(hex.slice(0,2),16),g=parseInt(hex.slice(2,4),16),b=parseInt(hex.slice(4,6),16);r=Math.round(r+(255-r)*amt);g=Math.round(g+(255-g)*amt);b=Math.round(b+(255-b)*amt);return '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');}
+function bg(c){c=c||'#5C7A6E';return c+(isDark()?'3A':'22');}
+function isPriv(a,f){return a.priv&&a.priv[f];}
+/* For list/summary spots: only fields that have content AND aren't marked private.
+   Root fix for: role/fields showing where they should be hidden, and empty bits. */
+function summaryBits(a){return ['pronouns','role','age'].filter(f=>a[f]&&!isPriv(a,f)).map(f=>a[f]).join(' \u00B7 ');}
+/* search matches name, and visible nicknames (hidden nicknames don't surface an alter) */
+function matchAlter(a,q){if(!q)return true;q=q.toLowerCase();if((a.name||'').toLowerCase().includes(q))return true;if(!isPriv(a,'nicknames')&&(a.nicknames||[]).some(n=>(''+n).toLowerCase().includes(q)))return true;return false;}
+/* textareas size themselves to their content — no manual resize handle */
+function grow(el){if(!el)return;el.style.height='auto';el.style.height=(el.scrollHeight+2)+'px';}
+
+/* ============ ACTIONS ============ */
+function set(f,v){const a=sel();if(!a)return;a[f]=v;save();}
+function setRender(f,v){set(f,v);render();}
+function togglePriv(f){const a=sel();if(!a)return;if(!a.priv)a.priv={};a.priv[f]=!a.priv[f];save();render();}
+function pickColor(c){const a=sel();if(!a)return;a.color=c;save();render();}
+function selectAlter(id){S.selId=id;render();}
+function setFront(id){S.frontId=id;if(S.coId===id)S.coId=null;save();render();}
+
+/* ===== ACTIVE-ALTER SPINE ===== */
+function active(){return S.frontId?S.alters.find(a=>a.id===S.frontId):null;}
+/* readable text colour on a given alter colour */
+function lum(hex){hex=(hex||'#5C7A6E').replace('#','');if(hex.length===3)hex=hex.split('').map(c=>c+c).join('');const r=parseInt(hex.slice(0,2),16),g=parseInt(hex.slice(2,4),16),b=parseInt(hex.slice(4,6),16);return (0.299*r+0.587*g+0.114*b)/255;}
+/* initial-letter colour that stays readable on the pale avatar tint, even for white/very light colours */
+function avInk(c){c=c||'#5C7A6E';const L=lum(c);if(isDark())return L<0.6?lighten(c,0.5):c;return L>0.7?'#6B6B66':c;}
+function applyAccent(){
+  const a=active();const root=document.documentElement.style;const dark=document.body.classList.contains('dark');
+  let accent='#5C7A6E';
+  if(a&&a.color&&lum(a.color)<0.8)accent=a.color;
+  root.setProperty('--sage',accent);
+  root.setProperty('--sage-m',accent+'99');
+  root.setProperty('--sage-l',dark?accent+'2E':(accent==='#5C7A6E'?'#EAF0EE':accent+'22'));
+  root.setProperty('--on-accent',lum(accent)>0.62?'#2A2A28':'#fff');
+}
+function applyPrefs(){
+  const a=active();const pf=(a&&a.prefs)||{};
+  document.body.classList.toggle('dark',!!pf.dark);
+  const z=pf.fs==='s'?0.9:(pf.fs==='l'?1.12:1);
+  document.documentElement.style.zoom=z;
+}
+function setActive(id){S.frontId=id;S.selId=id;if(S.coId===id)S.coId=null;_msgTime={};_editMsg=null;_openThread=null;_newChat=null;save();render();}
+function goOwnProfile(){S.selId=S.frontId;S.view='profiles';_msgTime={};_editMsg=null;render();}
+function setView(v){S.view=v;_msgTime={};_editMsg=null;render();}
+function lockApp(){S.frontId=null;_msgTime={};_editMsg=null;_openThread=null;_newChat=null;render();}        /* no active alter = locked */
+function setCo(id){if(id===S.frontId)return;S.coId=id;save();render();}
+function clearCo(){S.coId=null;save();render();}
+function swapActive(){if(!S.coId)return;const old=S.frontId;S.frontId=S.coId;S.coId=old;_msgTime={};_editMsg=null;_openThread=null;_newChat=null;save();render();}
+function openPicker(forCo){
+  const a=sorted().filter(x=>forCo?x.id!==S.frontId:true);
+  const cards=a.map(x=>{const nm=((x.name||'')+' '+(!isPriv(x,'nicknames')?(x.nicknames||[]).join(' '):'')).toLowerCase();return `<div class="entry-card" data-nm="${nm.replace(/"/g,'')}" onclick="${forCo?`setCo('${x.id}')`:`setActive('${x.id}')`};closeModal()"><div class="av" style="background:${bg(x.color)};color:${avInk(x.color)}">${x.photo?`<img src="${x.photo}">`:ini(x.name)}</div><div class="nm">${x.name}</div></div>`;}).join('');
+  document.getElementById('mods').innerHTML=`<div class="ov" onmousedown="ovDown(event)" onclick="ovClick(event)"><div class="modal" style="width:460px"><h3>${forCo?'Set co-fronting alter':'Who\u2019s active?'}</h3><p>${forCo?'Pick a second alter. One tap swaps who\u2019s active.':'The app becomes theirs \u2014 their colour, their view.'}</p><input id="pkSearch" class="search" style="width:100%;margin:0 0 12px" placeholder="Search\u2026" oninput="pickerFilter()"><div class="entry-grid" style="max-height:46vh;overflow-y:auto;justify-content:flex-start">${cards}</div></div></div>`;
+  setTimeout(()=>{const i=document.getElementById('pkSearch');if(i)i.focus();},30);
+}
+function pickerFilter(){const el=document.getElementById('pkSearch');if(!el)return;const q=el.value.toLowerCase();document.querySelectorAll('#mods .entry-card').forEach(c=>{c.style.display=(!q||(c.dataset.nm||'').includes(q))?'':'none';});}
+function entryScreen(){
+  const bar=`<div class="entry-bar"><button class="tbtn" onclick="doImport()"><i></i>Import</button><div style="flex:1"></div><button class="ico-btn" onclick="openSettings()" title="Settings">\u2699</button><button class="tbtn tbtn-p" onclick="openNewAlter()">+ Add alter</button></div>`;
+  if(!S.alters.length){
+    return `<div class="entry" ondragover="entryDrag(event,1)" ondragleave="entryDrag(event,0)" ondrop="entryDrop(event)"><div style="text-align:center;margin-top:16vh;display:flex;flex-direction:column;align-items:center;gap:16px"><div class="entry-h">Welcome</div><div class="entry-sub">Start fresh, or bring your roster across.</div><div style="display:flex;gap:10px"><button class="tbtn tbtn-p" onclick="openNewAlter()">+ Add first alter</button><button class="tbtn" onclick="doImport()">Import</button></div><div style="font-size:12px;color:var(--ink-s);max-width:360px;line-height:1.6">Import works with a <b>Simply Plural</b> export or a System Library backup (.json) \u2014 or drag the file anywhere on this screen.</div></div></div>`;
+  }
+  const q=(S.entrySearch||'');
+  const list=sorted().filter(a=>matchAlter(a,q));
+  return `<div class="entry" ondragover="entryDrag(event,1)" ondragleave="entryDrag(event,0)" ondrop="entryDrop(event)"><div class="entry-top">${bar}<div class="entry-h">Who\u2019s here?</div><div class="entry-sub">Pick who\u2019s active. The app becomes theirs.</div><input class="search" data-k="entrysearch" style="width:300px;max-width:90vw;margin:0" placeholder="Search ${S.alters.length} alters or nicknames\u2026" value="${(S.entrySearch||'').replace(/"/g,'&quot;')}" oninput="S.entrySearch=this.value;render()"><div style="font-size:11px;color:var(--ink-s)">Import reads Simply Plural &amp; System Library backups \u00B7 or drag a file in</div></div><div class="entry-grid">${list.length?list.map(a=>`<div class="entry-card" onclick="setActive('${a.id}')"><div class="av" style="background:${bg(a.color)};color:${avInk(a.color)}">${a.photo?`<img src="${a.photo}">`:ini(a.name)}</div><div class="nm">${a.name}</div></div>`).join(''):'<div style="color:var(--ink-s);font-size:14px;padding:30px">No match.</div>'}</div></div>`;
+}
+function entryDrag(e,on){e.preventDefault();const el=e.currentTarget;if(el)el.style.outline=on?'2px dashed var(--sage-m)':'';}
+function entryDrop(e){e.preventDefault();const el=e.currentTarget;if(el)el.style.outline='';const f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0];if(f)importFile(f);}
+
+function addTrait(v){const a=sel();v=v.trim();if(!a||!v)return;if(!a.traits)a.traits=[];if(!a.traits.includes(v))a.traits.push(v);save();render();}
+function rmTrait(i){const a=sel();if(!a||!a.traits)return;a.traits.splice(i,1);save();render();}
+function addNick(v){const a=sel();v=(v||'').trim();if(!a||!v)return;if(!a.nicknames)a.nicknames=[];if(!a.nicknames.includes(v))a.nicknames.push(v);save();render();}
+function rmNick(i){const a=sel();if(!a||!a.nicknames)return;a.nicknames.splice(i,1);save();render();}
+/* read a value out of an input by its data-k, clear it, pass to fn */
+function addFromInput(k,fn,arg){const el=document.querySelector('[data-k="'+k+'"]');if(!el)return;const v=el.value;el.value='';if(arg!==undefined)fn(arg,v);else fn(v);}
+
+/* Suggestions: propose any field (not name) for another alter; owner approves before it lands. */
+const FIELD_LABEL={pronouns:'pronouns',role:'role',age:'age',nicknames:'nickname',traits:'trait',notes:'note'};
+function aname(id){const x=S.alters.find(a=>a.id===id);return x?x.name:'someone';}
+function suggestField(alterId,field,val){val=(val||'').trim();if(!val||!field)return;const a=S.alters.find(x=>x.id===alterId);if(!a)return;if(!a.suggestions)a.suggestions=[];a.suggestions.push({id:uid(),by:S.frontId,field,value:val});save();render();}
+function doSuggest(alterId){const el=document.querySelector('[data-k="suggval"]');if(!el)return;const v=el.value;el.value='';suggestField(alterId,_suggField,v);}
+let _suggOpen=false,_suggField='nicknames';
+const SUGG_OPTS=[['nicknames','Nickname'],['traits','Trait'],['pronouns','Pronouns'],['role','Role'],['age','Age'],['notes','Note']];
+function suggLabel(v){const o=SUGG_OPTS.find(x=>x[0]===v);return o?o[1]:v;}
+function toggleSugg(){_suggOpen=!_suggOpen;render();}
+function chooseSugg(v){_suggField=v;_suggOpen=false;render();}
+
+/* ===== PROMPTS + ANSWERS (step 2) =====
+   A prompt is a shared question. Answering saves the answer to the ANSWERER's
+   own therapy section, with a frozen copy of the question so it stands alone,
+   and a private/shared eye that rides on the answer. */
+function fmtDate(ts){if(!ts)return '';const d=new Date(ts);return d.toLocaleDateString(undefined,{month:'short',day:'numeric'});}
+let _np={title:'',content:'',type:'text',rank:[],choices:[],multi:false,scaleLow:'',scaleHigh:''};
+function npSetType(t){_np.type=t;render();}
+function npSetMulti(m){_np.multi=m;render();}
+function npAddRank(){const el=document.querySelector('[data-k="np-rankopt"]');if(!el)return;const v=el.value.trim();el.value='';if(v&&!_np.rank.includes(v))_np.rank.push(v);render();}
+function npRmRank(i){_np.rank.splice(i,1);render();}
+function npEditRank(i,v){_np.rank[i]=v;}
+function npAddChoice(){const el=document.querySelector('[data-k="np-choiceopt"]');if(!el)return;const v=el.value.trim();el.value='';if(v&&!_np.choices.includes(v))_np.choices.push(v);render();}
+function npRmChoice(i){_np.choices.splice(i,1);render();}
+function npEditChoice(i,v){_np.choices[i]=v;}
+function npMoveChoice(i,dir){const a=_np.choices,j=i+dir;if(j<0||j>=a.length)return;const t=a[i];a[i]=a[j];a[j]=t;render();}
+let _ep={type:'text',rank:[],choices:[],multi:false,scaleLow:'',scaleHigh:''};
+function epSetType(t){_ep.type=t;render();}
+function epSetMulti(m){_ep.multi=m;render();}
+function epAddRank(){const el=document.querySelector('[data-k="ep-rankopt"]');if(!el)return;const v=el.value.trim();el.value='';if(v&&!_ep.rank.includes(v))_ep.rank.push(v);render();}
+function epRmRank(i){_ep.rank.splice(i,1);render();}
+function epEditRank(i,v){_ep.rank[i]=v;}
+function epAddChoice(){const el=document.querySelector('[data-k="ep-choiceopt"]');if(!el)return;const v=el.value.trim();el.value='';if(v&&!_ep.choices.includes(v))_ep.choices.push(v);render();}
+function epRmChoice(i){_ep.choices.splice(i,1);render();}
+function epEditChoice(i,v){_ep.choices[i]=v;}
+function epMoveChoice(i,dir){const a=_ep.choices,j=i+dir;if(j<0||j>=a.length)return;const t=a[i];a[i]=a[j];a[j]=t;render();}
+function typePickerHTML(ns,type){const b=(v,l)=>`<button class="navb${type===v?' on':''}" style="border-radius:0" onclick="${ns}SetType('${v}')">${l}</button>`;return `<div style="font-size:12px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--ink-s);margin:12px 0 6px">Answer type</div><div style="display:inline-flex;border:1px solid var(--brd-s);border-radius:10px;overflow:hidden">${b('text','Text')}${b('rank','Ranking')}${b('choice','Choice')}${b('scale','Scale')}</div>`;}
+function choiceEditorHTML(arr,ns,multi){const rows=arr.map((o,i)=>`<div class="rank-edit-row"><input class="rank-opt-input" value="${esc(o).replace(/"/g,'&quot;')}" oninput="${ns}EditChoice(${i},this.value)"><span class="rank-ar"><button onclick="${ns}MoveChoice(${i},-1)" ${i===0?'disabled':''}>\u25B2</button><button onclick="${ns}MoveChoice(${i},1)" ${i===arr.length-1?'disabled':''}>\u25BC</button></span><span class="tag-x" onclick="${ns}RmChoice(${i})">\u00D7</span></div>`).join('');return `<div style="margin-top:12px"><div style="font-size:12px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--ink-s);margin-bottom:6px">Choices</div>${rows}<div class="add-row"><input class="taginput" data-k="${ns}-choiceopt" placeholder="Add a choice, then Enter or the Add button" onkeydown="if(event.key==='Enter')${ns}AddChoice()"><button class="add-btn" onclick="${ns}AddChoice()">Add</button></div><div style="display:inline-flex;border:1px solid var(--brd-s);border-radius:999px;overflow:hidden;margin-top:10px"><button class="navb${!multi?' on':''}" style="border-radius:0" onclick="${ns}SetMulti(false)">Pick one</button><button class="navb${multi?' on':''}" style="border-radius:0" onclick="${ns}SetMulti(true)">Pick many</button></div></div>`;}
+function scaleEditorHTML(ns,low,high){const obj=ns==='np'?'_np':'_ep';return `<div style="margin-top:12px"><div style="font-size:12px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--ink-s);margin-bottom:6px">Scale 1\u201310 \u2014 end labels (optional)</div><div style="display:flex;gap:8px"><input class="search" data-k="${ns}-low" style="flex:1;margin:0" value="${esc(low||'').replace(/"/g,'&quot;')}" placeholder="Low end \u2014 e.g. Not at all" oninput="${obj}.scaleLow=this.value"><input class="search" data-k="${ns}-high" style="flex:1;margin:0" value="${esc(high||'').replace(/"/g,'&quot;')}" placeholder="High end \u2014 e.g. Very much" oninput="${obj}.scaleHigh=this.value"></div></div>`;}
+/* shared editable ranking-options list. ns is 'np' (composer) or 'ep' (prompt edit) */
+function rankEditorHTML(arr,ns){
+  const rows=arr.map((o,i)=>`<div class="rank-edit-row"><input class="rank-opt-input" value="${esc(o).replace(/"/g,'&quot;')}" oninput="${ns}EditRank(${i},this.value)"><span class="tag-x" onclick="${ns}RmRank(${i})">\u00D7</span></div>`).join('');
+  return `<div style="margin-top:12px"><div style="font-size:12px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--ink-s);margin-bottom:6px">Ranking list ${arr.length?'':'\u2014 optional'}</div>${rows}<div class="add-row"><input class="taginput" data-k="${ns}-rankopt" placeholder="Add an option, then Enter or the Add button" onkeydown="if(event.key==='Enter')${ns}AddRank()"><button class="add-btn" onclick="${ns}AddRank()">Add</button></div>${arr.length?`<div style="font-size:12px;color:var(--ink-s);margin-top:5px">People answering will drag these into their own order.</div>`:''}</div>`;
+}
+function newPrompt(){
+  if(_np.type==='rank'){const ro=document.querySelector('[data-k="np-rankopt"]');if(ro&&ro.value.trim()){const v=ro.value.trim();if(!_np.rank.includes(v))_np.rank.push(v);ro.value='';}}
+  if(_np.type==='choice'){const ro=document.querySelector('[data-k="np-choiceopt"]');if(ro&&ro.value.trim()){const v=ro.value.trim();if(!_np.choices.includes(v))_np.choices.push(v);ro.value='';}}
+  const t=document.querySelector('[data-k="np-title"]'),c=document.querySelector('[data-k="np-content"]');
+  const title=((t?t.value:_np.title)||'').trim(),content=((c?c.value:_np.content)||'').trim();
+  const rank=_np.rank.map(x=>(x||'').trim()).filter(Boolean).filter((v,i,a)=>a.indexOf(v)===i);
+  const choices=_np.choices.map(x=>(x||'').trim()).filter(Boolean).filter((v,i,a)=>a.indexOf(v)===i);
+  const hasType=(_np.type==='rank'&&rank.length)||(_np.type==='choice'&&choices.length)||(_np.type==='scale');
+  if(!title&&!content&&!hasType)return;
+  const p={id:uid(),title:title,content:content,by:S.frontId,date:Date.now()};
+  if(_np.type==='rank'&&rank.length)p.rank=rank;
+  if(_np.type==='choice'&&choices.length){p.choices=choices;p.multi=!!_np.multi;}
+  if(_np.type==='scale'){p.scale=true;p.scaleLow=(_np.scaleLow||'').trim();p.scaleHigh=(_np.scaleHigh||'').trim();}
+  S.prompts.push(p);_np={title:'',content:'',type:'text',rank:[],choices:[],multi:false,scaleLow:'',scaleHigh:''};S.view='prompts';save();render();
+}
+/* drag-to-rank answering: working order lives in _rankOrder[promptId] until saved */
+let _rankOrder={},_drag={key:null,idx:null},_choiceSel={},_scaleSel={};
+function choiceInit(key,base){if(!_choiceSel[key])_choiceSel[key]=Array.isArray(base)?base.slice():[];return _choiceSel[key];}
+function toggleChoice(key,pid,idx,multi){const p=S.prompts.find(x=>x.id===pid);if(!p||!p.choices)return;const o=p.choices[idx];if(o==null)return;if(!_choiceSel[key])_choiceSel[key]=[];const arr=_choiceSel[key];const at=arr.indexOf(o);if(multi){if(at>-1)arr.splice(at,1);else arr.push(o);}else{_choiceSel[key]=(at>-1)?[]:[o];}render();}
+function saveChoice(pid){const a=active();const p=S.prompts.find(x=>x.id===pid);if(!a||!p)return;const key=_open;const sel=(_choiceSel[key]||[]).filter(o=>p.choices.includes(o));if(!sel.length)return;const snap={title:p.title,content:p.content,askerName:aname(p.by),choices:p.choices.slice(),multi:!!p.multi};if(!a.answers)a.answers=[];const nd=Math.max(Date.now(),...a.answers.filter(x=>x.promptId===pid).map(x=>x.date||0),0)+1;if(key&&key.indexOf('new-')!==0){const e=a.answers.find(x=>x.id===key);if(e){e.choice=sel;delete e.text;delete e.order;delete e.scaleVal;e.snap=snap;e.date=nd;}}else{a.answers.push({id:uid(),promptId:pid,snap:snap,choice:sel,vis:'private',date:nd});}delete _choiceSel[key];_open=null;save();render();}
+function scaleInit(key,base){if(_scaleSel[key]===undefined)_scaleSel[key]=(typeof base==='number')?base:null;return _scaleSel[key];}
+function setScale(key,n){_scaleSel[key]=n;render();}
+function saveScale(pid){const a=active();const p=S.prompts.find(x=>x.id===pid);if(!a||!p)return;const key=_open;const val=_scaleSel[key];if(!val)return;const snap={title:p.title,content:p.content,askerName:aname(p.by),scaleLow:p.scaleLow||'',scaleHigh:p.scaleHigh||''};if(!a.answers)a.answers=[];const nd=Math.max(Date.now(),...a.answers.filter(x=>x.promptId===pid).map(x=>x.date||0),0)+1;if(key&&key.indexOf('new-')!==0){const e=a.answers.find(x=>x.id===key);if(e){e.scaleVal=val;delete e.text;delete e.order;delete e.choice;e.snap=snap;e.date=nd;}}else{a.answers.push({id:uid(),promptId:pid,snap:snap,scaleVal:val,vis:'private',date:nd});}delete _scaleSel[key];_open=null;save();render();}
+function rankInit(key,p,base){if(!_rankOrder[key])_rankOrder[key]=(base&&Array.isArray(base))?base.slice():p.rank.slice();
+  const set=new Set(p.rank);_rankOrder[key]=_rankOrder[key].filter(x=>set.has(x));p.rank.forEach(x=>{if(!_rankOrder[key].includes(x))_rankOrder[key].push(x);});return _rankOrder[key];}
+function moveRank(key,i,dir){const a=_rankOrder[key];if(!a)return;const j=i+dir;if(j<0||j>=a.length)return;const t=a[i];a[i]=a[j];a[j]=t;render();}
+function rankDragStart(e,key,i){_drag={key:key,idx:i};e.dataTransfer.effectAllowed='move';try{e.dataTransfer.setData('text','x');}catch(x){}try{e.currentTarget.classList.add('drag');}catch(x){}}
+function rankDragOver(e){e.preventDefault();e.dataTransfer.dropEffect='move';}
+function rankListDrop(e,key){e.preventDefault();const a=_rankOrder[key];if(!a||_drag.key!==key||_drag.idx==null){_drag={key:null,idx:null};render();return;}const items=Array.prototype.slice.call(e.currentTarget.querySelectorAll('.rank-item'));let to=items.length;for(let j=0;j<items.length;j++){const r=items[j].getBoundingClientRect();if(e.clientY<r.top+r.height/2){to=j;break;}}const from=_drag.idx;const m=a.splice(from,1)[0];if(from<to)to--;a.splice(to,0,m);_drag={key:null,idx:null};render();}
+function saveRank(pid){const a=active();const p=S.prompts.find(x=>x.id===pid);if(!a||!p)return;const key=_open;const order=(_rankOrder[key]||p.rank).slice();const snap={title:p.title,content:p.content,askerName:aname(p.by),rank:p.rank.slice()};if(!a.answers)a.answers=[];const nd=Math.max(Date.now(),...a.answers.filter(x=>x.promptId===pid).map(x=>x.date||0),0)+1;if(key&&key.indexOf('new-')!==0){const e=a.answers.find(x=>x.id===key);if(e){e.order=order;e.snap=snap;e.date=nd;}}else{a.answers.push({id:uid(),promptId:pid,snap:snap,order:order,vis:'private',date:nd});}delete _rankOrder[key];_open=null;save();render();}
+/* render any answer body: a ranked order, or plain text */
+function ansBody(ans){if(ans&&Array.isArray(ans.order)){return `<div class="rank-ord">`+ans.order.map((o,i)=>`<div class="rank-ord-item"><span class="rank-num">${i+1}</span><span>${esc(o)}</span></div>`).join('')+`</div>`;}if(ans&&Array.isArray(ans.choice)){return `<div class="ans-choice">`+ans.choice.map(o=>`<div class="choice-picked"><span class="cbox">\u2713</span><span>${esc(o)}</span></div>`).join('')+`</div>`;}if(ans&&typeof ans.scaleVal==='number'){const lo=ans.snap&&ans.snap.scaleLow,hi=ans.snap&&ans.snap.scaleHigh;return `<div class="ans-scale"><span class="scale-val">${ans.scaleVal}</span><span class="scale-of">/ 10</span>${(lo||hi)?`<span class="scale-lbl">${esc(lo||'1')} \u2192 ${esc(hi||'10')}</span>`:''}</div>`;}return `<div class="ans-text">${esc(ans?ans.text:'')}</div>`;}
+function delPrompt(id){const p=S.prompts.find(x=>x.id===id);if(!p)return;openConfirm('Remove this prompt?','It leaves the feed so no one can answer it again. Answers people already gave stay in their own therapy sections.',()=>{S.prompts=S.prompts.filter(x=>x.id!==id);save();render();});}
+/* Pin: anyone can pin to top. Unpin needs a second alter to agree \u2014 unless you pinned it or asked it. */
+function pinPrompt(id){const p=S.prompts.find(x=>x.id===id);if(!p)return;p.pin=S.frontId;delete p.unpinReq;save();render();}
+function unpinPrompt(id){const p=S.prompts.find(x=>x.id===id);if(!p)return;if(p.pin===S.frontId||p.by===S.frontId){delete p.pin;delete p.unpinReq;save();render();}}
+function requestUnpin(id){const p=S.prompts.find(x=>x.id===id);if(!p||!p.pin)return;p.unpinReq=S.frontId;save();render();}
+function cancelUnpin(id){const p=S.prompts.find(x=>x.id===id);if(!p)return;if(p.unpinReq===S.frontId){delete p.unpinReq;save();render();}}
+function agreeUnpin(id){const p=S.prompts.find(x=>x.id===id);if(!p||!p.unpinReq)return;if(p.unpinReq!==S.frontId){delete p.pin;delete p.unpinReq;save();render();}}
+let _editPrompt=null;
+function editStart(id){const p=S.prompts.find(x=>x.id===id);let type='text';if(p){if(p.rank&&p.rank.length)type='rank';else if(p.choices&&p.choices.length)type='choice';else if(p.scale)type='scale';}_ep={type:type,rank:(p&&p.rank)?p.rank.slice():[],choices:(p&&p.choices)?p.choices.slice():[],multi:!!(p&&p.multi),scaleLow:(p&&p.scaleLow)||'',scaleHigh:(p&&p.scaleHigh)||''};_editPrompt=id;render();}
+function editCancel(){_editPrompt=null;render();}
+function editSave(id){const p=S.prompts.find(x=>x.id===id);if(!p){_editPrompt=null;render();return;}const t=document.querySelector('[data-k="ep-title"]'),c=document.querySelector('[data-k="ep-content"]');if(t)p.title=t.value.trim();if(c)p.content=c.value.trim();
+  if(_ep.type==='rank'){const ro=document.querySelector('[data-k="ep-rankopt"]');if(ro&&ro.value.trim()){const v=ro.value.trim();if(!_ep.rank.includes(v))_ep.rank.push(v);}}
+  if(_ep.type==='choice'){const ro=document.querySelector('[data-k="ep-choiceopt"]');if(ro&&ro.value.trim()){const v=ro.value.trim();if(!_ep.choices.includes(v))_ep.choices.push(v);}}
+  delete p.rank;delete p.choices;delete p.multi;delete p.scale;delete p.scaleLow;delete p.scaleHigh;
+  if(_ep.type==='rank'){const rank=_ep.rank.map(x=>(x||'').trim()).filter(Boolean).filter((v,i,a)=>a.indexOf(v)===i);if(rank.length)p.rank=rank;}
+  else if(_ep.type==='choice'){const ch=_ep.choices.map(x=>(x||'').trim()).filter(Boolean).filter((v,i,a)=>a.indexOf(v)===i);if(ch.length){p.choices=ch;p.multi=!!_ep.multi;}}
+  else if(_ep.type==='scale'){const le=document.querySelector('[data-k="ep-low"]'),he=document.querySelector('[data-k="ep-high"]');p.scale=true;p.scaleLow=((le?le.value:_ep.scaleLow)||'').trim();p.scaleHigh=((he?he.value:_ep.scaleHigh)||'').trim();}
+  _editPrompt=null;save();render();}
+function myEntries(pid){const a=active();if(!a||!a.answers)return [];return a.answers.filter(x=>x.promptId===pid).slice().sort((x,y)=>y.date-x.date);}
+function othersAnswers(pid){const out=[];S.alters.forEach(al=>{if(al.id===S.frontId)return;(al.answers||[]).filter(x=>x.promptId===pid&&x.vis==='shared').sort((x,y)=>y.date-x.date).forEach(e=>{out.push({name:al.name,color:al.color,text:e.text,order:e.order,choice:e.choice,scaleVal:e.scaleVal,snap:e.snap,date:e.date});});});return out;}
+let _open=null,_ansDraft={},_ansOpen={};
+function openCompose(pid){_open='new-'+pid;render();}
+function openEdit(eid){_open=eid;render();}
+function closeEdit(){if(_open){delete _ansDraft[_open];delete _rankOrder[_open];delete _choiceSel[_open];delete _scaleSel[_open];}_open=null;render();}
+function saveText(pid){const a=active();const p=S.prompts.find(x=>x.id===pid);if(!a||!p)return;const key=_open;const text=((_ansDraft[key]!==undefined?_ansDraft[key]:'')||'').trim();if(!text)return;const snap={title:p.title,content:p.content,askerName:aname(p.by)};if(!a.answers)a.answers=[];const nd=Math.max(Date.now(),...a.answers.filter(x=>x.promptId===pid).map(x=>x.date||0),0)+1;if(key&&key.indexOf('new-')!==0){const e=a.answers.find(x=>x.id===key);if(e){e.text=text;e.snap=snap;e.date=nd;}}else{a.answers.push({id:uid(),promptId:pid,snap:snap,text:text,vis:'private',date:nd});}delete _ansDraft[key];_open=null;save();render();}
+function toggleAnsVis(eid){const a=active();if(!a||!a.answers)return;const e=a.answers.find(x=>x.id===eid);if(e){e.vis=e.vis==='shared'?'private':'shared';save();render();}}
+function delAnswer(eid){const a=active();if(!a||!a.answers)return;a.answers=a.answers.filter(x=>x.id!==eid);save();render();}
+function promptsView(){
+  const me=active();
+  let h=`<div class="prompts-wrap">`;
+  const npr=_np.rank;
+  const npEditorHTML=_np.type==='rank'?rankEditorHTML(_np.rank,'np'):(_np.type==='choice'?choiceEditorHTML(_np.choices,'np',_np.multi):(_np.type==='scale'?scaleEditorHTML('np',_np.scaleLow,_np.scaleHigh):''));
+  const npReady=(_np.title.trim()||_np.content.trim()||_np.rank.length||_np.choices.length||_np.type==='scale');
+  h+=`<div class="pcompose"><div class="suggest-card-h">New prompt \u2014 asked by you (${esc(me.name)})</div><input class="search" data-k="np-title" value="${esc(_np.title).replace(/"/g,'&quot;')}" style="width:100%;margin:0 0 8px" placeholder="A question or topic" oninput="_np.title=this.value;document.getElementById('np-post').disabled=!(this.value.trim()||_np.content.trim()||_np.rank.length||_np.choices.length||_np.type==='scale')"><textarea data-k="np-content" placeholder="More detail, if you want \u2014 optional" oninput="_np.content=this.value;grow(this);document.getElementById('np-post').disabled=!(_np.title.trim()||this.value.trim()||_np.rank.length||_np.choices.length||_np.type==='scale')">${esc(_np.content)}</textarea>${typePickerHTML('np',_np.type)}${npEditorHTML}<div style="display:flex;justify-content:flex-end;margin-top:10px"><button id="np-post" class="tbtn tbtn-p" ${npReady?'':'disabled'} onclick="newPrompt()">Post prompt</button></div></div>`;
+  const feed=S.prompts.slice().sort((a,b)=>{const pa=a.pin?1:0,pb=b.pin?1:0;if(pa!==pb)return pb-pa;return b.date-a.date;});
+  if(!feed.length){h+=`<div style="text-align:center;color:var(--ink-s);font-size:14px;margin-top:30px;line-height:1.7">No prompts yet.<br>Post one above. Anyone can answer, and each answer is saved privately to whoever wrote it \u2014 shared with the system only if they choose.</div>`;}
+  feed.forEach(p=>{
+    const isAsker=p.by===S.frontId;
+    if(_editPrompt===p.id){
+      const epEditorHTML=_ep.type==='rank'?rankEditorHTML(_ep.rank,'ep'):(_ep.type==='choice'?choiceEditorHTML(_ep.choices,'ep',_ep.multi):(_ep.type==='scale'?scaleEditorHTML('ep',_ep.scaleLow,_ep.scaleHigh):''));
+      h+=`<div class="pcard"><div class="suggest-card-h">Edit prompt</div><input class="search" data-k="ep-title" style="width:100%;margin:0 0 8px" value="${esc(p.title).replace(/"/g,'&quot;')}" placeholder="A question or topic"><textarea data-k="ep-content" placeholder="More detail \u2014 optional" oninput="grow(this)">${esc(p.content)}</textarea>${typePickerHTML('ep',_ep.type)}${epEditorHTML}<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px"><button class="tbtn" onclick="editCancel()">Cancel</button><button class="tbtn tbtn-p" onclick="editSave('${p.id}')">Save changes</button></div><div style="font-size:11px;color:var(--ink-s);margin-top:8px">Editing changes the prompt going forward. Answers already given keep the question as it was when answered.</div></div>`;
+      return;
+    }
+    h+=`<div class="pcard"><div class="pcard-top"><div><div class="pcard-title">${esc(p.title)||'(untitled)'}</div><div class="pcard-meta">asked by ${esc(aname(p.by))} \u00B7 ${fmtDate(p.date)}</div></div>${isAsker?`<div style="display:flex;gap:6px;flex-shrink:0"><button class="tbtn" style="font-size:12px;padding:4px 9px" onclick="editStart('${p.id}')">Edit</button><button class="tbtn" style="font-size:12px;padding:4px 9px" onclick="delPrompt('${p.id}')">Remove</button></div>`:`<button class="tbtn" style="font-size:12px;padding:4px 9px;flex-shrink:0" onclick="startDirect('${p.by}')">\uD83D\uDCAC Message ${esc(aname(p.by))}</button>`}</div>`;
+    let pinRow;
+    if(p.pin){
+      const canDirect=(p.pin===S.frontId)||(p.by===S.frontId);
+      let ctrl;
+      if(canDirect)ctrl=`<button class="tbtn" style="font-size:11px;padding:3px 9px" onclick="unpinPrompt('${p.id}')">Unpin</button>`;
+      else if(!p.unpinReq)ctrl=`<button class="tbtn" style="font-size:11px;padding:3px 9px" onclick="requestUnpin('${p.id}')">Request unpin</button>`;
+      else if(p.unpinReq===S.frontId)ctrl=`<span style="color:var(--ink-s)">waiting for another to agree</span> <button class="tbtn" style="font-size:11px;padding:3px 9px" onclick="cancelUnpin('${p.id}')">Cancel</button>`;
+      else ctrl=`<span style="color:var(--ink-s)">${esc(aname(p.unpinReq))} asked to unpin</span> <button class="tbtn tbtn-p" style="font-size:11px;padding:3px 9px" onclick="agreeUnpin('${p.id}')">Agree to unpin</button>`;
+      pinRow=`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--ink-m);margin-top:10px">\uD83D\uDCCC Pinned ${ctrl}</div>`;
+    }else{
+      pinRow=`<div style="margin-top:10px"><button class="tbtn" style="font-size:11px;padding:3px 9px" onclick="pinPrompt('${p.id}')">\uD83D\uDCCC Pin to top</button></div>`;
+    }
+    if(p.content)h+=`<div class="pcard-body">${esc(p.content)}</div>`;
+    h+=pinRow;
+    const isRank=!!(p.rank&&p.rank.length);const isChoice=!!(p.choices&&p.choices.length);const isScale=!!p.scale;
+    if(isRank)h+=`<div style="font-size:13px;color:var(--ink-m);margin-top:10px"><b>Ranking list:</b> ${p.rank.map(esc).join(' \u00B7 ')}</div>`;
+    if(isChoice)h+=`<div style="font-size:13px;color:var(--ink-m);margin-top:10px"><b>${p.multi?'Pick any that apply':'Pick one'}:</b> ${p.choices.map(esc).join(' \u00B7 ')}</div>`;
+    if(isScale)h+=`<div style="font-size:13px;color:var(--ink-m);margin-top:10px"><b>Rate 1\u201310</b>${(p.scaleLow||p.scaleHigh)?` \u2014 ${esc(p.scaleLow||'1')} \u2192 ${esc(p.scaleHigh||'10')}`:''}</div>`;
+    const mine=myEntries(p.id),others=othersAnswers(p.id),composing=_open===('new-'+p.id);
+    // editor builder
+    const editor=(key,base)=>{
+      if(isRank){const order=rankInit(key,p,base);return `<div class="editbox" ondragenter="rankDragOver(event)" ondragover="rankDragOver(event)" ondrop="rankListDrop(event,'${key}')"><div class="editbox-h">${key.indexOf('new-')===0?'New ranking':'Editing ranking'} \u2014 drag the rows or use the arrows</div><div class="rank-list" ondragenter="rankDragOver(event)" ondragover="rankDragOver(event)">`+order.map((o,i)=>`<div class="rank-item" draggable="true" ondragstart="rankDragStart(event,'${key}',${i})" ondragenter="rankDragOver(event)" ondragover="rankDragOver(event)" ondragend="this.classList.remove('drag')"><span class="rank-grip">\u22EE\u22EE</span><span class="rank-num">${i+1}</span><span class="rank-label">${esc(o)}</span><span class="rank-ar"><button onclick="moveRank('${key}',${i},-1)" ${i===0?'disabled':''}>\u25B2</button><button onclick="moveRank('${key}',${i},1)" ${i===order.length-1?'disabled':''}>\u25BC</button></span></div>`).join('')+`</div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px"><button class="tbtn" style="font-size:12px;padding:5px 12px" onclick="closeEdit()">Cancel</button><button class="tbtn tbtn-p" style="font-size:12px;padding:5px 12px" onclick="saveRank('${p.id}')">Save ranking</button></div></div>`;}
+      if(isChoice){const sel=choiceInit(key,base);return `<div class="editbox"><div class="editbox-h">${key.indexOf('new-')===0?'New answer':'Editing answer'} \u2014 ${p.multi?'pick any that apply':'pick one'}</div><div class="choice-list">`+p.choices.map((o,i)=>{const on=sel.includes(o);return `<div class="choice-opt${on?' on':''}" onclick="toggleChoice('${key}','${p.id}',${i},${p.multi?'true':'false'})"><span class="${p.multi?'cbox':'rbox'}">${on?(p.multi?'\u2713':'\u25CF'):''}</span><span>${esc(o)}</span></div>`;}).join('')+`</div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px"><button class="tbtn" style="font-size:12px;padding:5px 12px" onclick="closeEdit()">Cancel</button><button class="tbtn tbtn-p" ${sel.length?'':'disabled'} style="font-size:12px;padding:5px 12px" onclick="saveChoice('${p.id}')">Save</button></div></div>`;}
+      if(isScale){const val=scaleInit(key,base);let btns='';for(let n=1;n<=10;n++){btns+=`<button class="scale-btn${val===n?' on':''}" onclick="setScale('${key}',${n})">${n}</button>`;}return `<div class="editbox"><div class="editbox-h">${key.indexOf('new-')===0?'New answer':'Editing answer'} \u2014 tap a number</div>${(p.scaleLow||p.scaleHigh)?`<div class="scale-ends"><span>${esc(p.scaleLow||'1')}</span><span>${esc(p.scaleHigh||'10')}</span></div>`:''}<div class="scale-row">${btns}</div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px"><button class="tbtn" style="font-size:12px;padding:5px 12px" onclick="closeEdit()">Cancel</button><button class="tbtn tbtn-p" ${val?'':'disabled'} style="font-size:12px;padding:5px 12px" onclick="saveScale('${p.id}')">Save</button></div></div>`;}
+      const sv=(_ansDraft[key]!==undefined)?_ansDraft[key]:(base||'');
+      return `<div class="editbox"><div class="editbox-h">${key.indexOf('new-')===0?'New answer':'Editing answer'}</div><textarea data-k="ans-${key}" oninput="_ansDraft['${key}']=this.value;grow(this);document.getElementById('save-${key}').disabled=!this.value.trim()" placeholder="Type here\u2026">${esc(sv)}</textarea><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px"><button class="tbtn" style="font-size:12px;padding:5px 12px" onclick="closeEdit()">Cancel</button><button id="save-${key}" class="tbtn tbtn-p" ${sv.trim()?'':'disabled'} style="font-size:12px;padding:5px 12px" onclick="saveText('${p.id}')">Save</button></div></div>`;
+    };
+    // posted entry builder
+    const editLbl=isRank?'Re-rank':(isChoice?'Re-pick':(isScale?'Re-rate':'Edit'));
+    const posted=(e,latest)=>`<div class="mine-ans"><div class="ans-mine-h">${latest?'Your answer':'Earlier'} \u00B7 ${fmtDate(e.date)} \u00B7 ${e.vis==='shared'?'<span class="ans-eye">shared with system</span>':'<span class="ans-eye">private to you</span>'}</div>${ansBody(e)}<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="tbtn" style="font-size:12px;padding:5px 10px" onclick="toggleAnsVis('${e.id}')">${e.vis==='shared'?'\uD83D\uDC41 Shared \u2014 make private':'\uD83D\uDD12 Private \u2014 share with system'}</button><button class="tbtn" style="font-size:12px;padding:5px 10px" onclick="openEdit('${e.id}')">${editLbl}</button><button class="tbtn" style="font-size:12px;padding:5px 10px" onclick="delAnswer('${e.id}')">Delete</button></div></div>`;
+    const editBase=e=>isRank?e.order:(isChoice?e.choice:(isScale?e.scaleVal:e.text));
+    // YOUR area first
+    h+=`<div class="ans-mine">`;
+    if(composing)h+=editor('new-'+p.id,null);
+    mine.forEach((e,idx)=>{h+=(_open===e.id)?editor(e.id,editBase(e)):posted(e,idx===0&&!composing);});
+    if(!composing&&_open===null||(!composing&&!mine.some(e=>_open===e.id))){const first=isRank?'Rank these':(isChoice?(p.multi?'Pick options':'Pick one'):(isScale?'Rate 1\u201310':'Answer'));const more=isRank?'+ New ranking':(isChoice?'+ New pick':(isScale?'+ New rating':'+ New answer'));const lbl=mine.length?more:first;h+=`<button class="tbtn ${mine.length?'':'tbtn-p'}" style="font-size:12px;padding:6px 14px;margin-top:${mine.length?'10px':'0'}" onclick="openCompose('${p.id}')">${lbl}</button>`;}
+    h+=`</div>`;
+    // OTHERS below
+    if(others.length){
+      if(others.length>1&&!_ansOpen[p.id]){
+        h+=`<div class="ans-list"><button class="tbtn" style="font-size:12px;padding:6px 12px;align-self:flex-start" onclick="_ansOpen['${p.id}']=1;render()">Show ${others.length} answers from others</button></div>`;
+      }else{
+        h+=`<div class="ans-list">`+others.map(x=>`<div class="ans"><span class="ans-dot" style="background:${x.color}"></span><b>${esc(x.name)}</b><span class="ans-eye"> \u00B7 ${fmtDate(x.date)}</span>${ansBody(x)}</div>`).join('')+(others.length>1?`<button class="tbtn" style="font-size:12px;padding:5px 10px;align-self:flex-start" onclick="delete _ansOpen['${p.id}'];render()">Hide</button>`:'')+`</div>`;
+      }
+    }
+    h+=`</div>`
+  });
+  h+=`</div>`;
+  return h;
+}
+let _thyType='all',_thyVis='all',_thySort='new';
+function setThyType(v){_thyType=v;render();}
+function setThyVis(v){_thyVis=v;render();}
+function setThySort(v){_thySort=v;render();}
+function answerType(x){if(x&&Array.isArray(x.order))return 'rank';if(x&&Array.isArray(x.choice))return 'choice';if(x&&typeof x.scaleVal==='number')return 'scale';return 'text';}
+function therapyView(){
+  const me=active();const total=(me.answers||[]).length;
+  let all=(me.answers||[]).slice().filter(x=>(_thyType==='all'||answerType(x)===_thyType)&&(_thyVis==='all'||(x.vis||'private')===_thyVis));
+  all.sort((a,b)=>_thySort==='old'?(a.date-b.date):(b.date-a.date));
+  let h=`<div class="prompts-wrap">`;
+  h+=`<div class="thy-head"><div class="thy-title">Therapy \u2014 ${esc(me.name)}</div><div class="pcard-meta">Your own space. Answers you give to prompts are kept here \u2014 private unless you share them.</div></div>`;
+  const pill=(on,fn,lbl)=>`<button class="navb${on?' on':''}" style="font-size:12px;padding:5px 10px" onclick="${fn}">${lbl}</button>`;
+  const lblStyle='font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--ink-s);width:46px;flex-shrink:0';
+  if(total){
+    h+=`<div style="display:flex;flex-direction:column;gap:8px;margin-top:18px">`;
+    h+=`<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span style="${lblStyle}">Sort</span>${pill(_thySort==='new',"setThySort('new')",'Newest')}${pill(_thySort==='old',"setThySort('old')",'Oldest')}</div>`;
+    h+=`<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span style="${lblStyle}">Type</span>${pill(_thyType==='all',"setThyType('all')",'All')}${pill(_thyType==='text',"setThyType('text')",'Text')}${pill(_thyType==='rank',"setThyType('rank')",'Ranking')}${pill(_thyType==='choice',"setThyType('choice')",'Choice')}${pill(_thyType==='scale',"setThyType('scale')",'Scale')}</div>`;
+    h+=`<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span style="${lblStyle}">Show</span>${pill(_thyVis==='all',"setThyVis('all')",'All')}${pill(_thyVis==='private',"setThyVis('private')",'Private')}${pill(_thyVis==='shared',"setThyVis('shared')",'Shared')}</div>`;
+    h+=`</div>`;
+  }
+  h+=`<div class="seclbl" style="margin-top:18px">Your answers (${all.length}${all.length!==total?' of '+total:''})</div>`;
+  if(!total){h+=`<div style="color:var(--ink-s);font-size:14px;padding:12px 0;line-height:1.7">No answers yet.<br>Go to Prompts and answer one \u2014 it\u2019ll be kept here for you.</div>`;}
+  else if(!all.length){h+=`<div style="color:var(--ink-s);font-size:14px;padding:12px 0">Nothing matches these filters.</div>`;}
+  all.forEach(x=>{const lp=S.prompts.find(pp=>pp.id===x.promptId);const title=(x.snap&&x.snap.title)||(lp&&lp.title)||'';const body=(x.snap&&x.snap.content)||(lp&&lp.content)||'';const rank=(x.snap&&x.snap.rank)||(lp&&lp.rank)||null;const head=title||body||'(untitled prompt)';h+=`<div class="tcard" style="display:flex;gap:16px;align-items:stretch"><div style="flex:1;min-width:0"><div class="tcard-q">${esc(head)} <span class="ans-eye">\u00B7 ${fmtDateTime(x.date)}</span></div>${(title&&body)?`<div style="font-size:13px;color:var(--ink-m);margin:4px 0 0;white-space:pre-wrap">${esc(body)}</div>`:''}<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--brd);"><div class="ans-lbl">Your answer</div>${ansBody(x)}</div></div><div style="display:flex;flex-direction:column;align-items:flex-end;justify-content:space-between;gap:10px;flex-shrink:0;width:150px;text-align:right">${(rank&&rank.length)?`<div style="font-size:12px;color:var(--ink-s);line-height:1.6"><b>Ranking list:</b><br>${rank.map(esc).join(' \u00B7 ')}</div>`:'<div></div>'}<div style="display:flex;gap:8px"><button class="tbtn" style="font-size:11px;padding:4px 9px" onclick="toggleAnsVis('${x.id}')">${x.vis==='shared'?'\uD83D\uDC41 Shared':'\uD83D\uDD12 Private'}</button><button class="tbtn" style="font-size:11px;padding:4px 9px" onclick="delAnswer('${x.id}')">Delete</button></div></div></div>`;});
+  h+=`</div>`;
+  return h;
+}
+/* ===== MESSAGES ===== */
+let _openThread=null,_msgDraft={},_newChat=null,_msgTime={},_editMsg=null,_showArchived=false,_scrollMsgBottom=false;
+function fmtDateTime(ts){if(!ts)return '';const d=new Date(ts);return d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})+' \u00B7 '+d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});}
+function fmtDayLabel(ts){const d=new Date(ts),now=new Date();const same=(a,b)=>a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate();const y=new Date(now);y.setDate(now.getDate()-1);if(same(d,now))return 'Today';if(same(d,y))return 'Yesterday';return d.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric',year:'numeric'});}
+function lastMsgDate(t){return (t.msgs&&t.msgs.length)?t.msgs[t.msgs.length-1].date:(t.created||0);}
+function lastMsgText(t){if(!t.msgs||!t.msgs.length)return 'No messages yet';const m=t.msgs[t.msgs.length-1];return (m.by===S.frontId?'You: ':(aname(m.by)+': '))+m.text;}
+function threadTitle(t){if(t.name)return t.name;const others=t.members.filter(id=>id!==S.frontId).map(id=>aname(id));return others.length?others.join(', '):'(empty)';}
+function threadMembersLine(t){return t.members.map(id=>aname(id)).join(', ');}
+function myThreads(){const me=S.frontId;return S.threads.filter(t=>t.members.indexOf(me)>-1&&!t.archived).slice().sort((a,b)=>lastMsgDate(b)-lastMsgDate(a));}
+function myArchived(){const me=S.frontId;return S.threads.filter(t=>t.members.indexOf(me)>-1&&t.archived).slice().sort((a,b)=>lastMsgDate(b)-lastMsgDate(a));}
+function markSeen(t){if(!t||!S.frontId)return;if(!t.seen)t.seen={};t.seen[S.frontId]=Math.max(lastMsgDate(t),t.seen[S.frontId]||0);}
+function unreadCount(t){const me=S.frontId;if(!me)return 0;const seen=(t.seen&&t.seen[me])||0;return (t.msgs||[]).filter(m=>m.by!==me&&m.date>seen).length;}
+function anyUnread(){return myThreads().some(t=>unreadCount(t)>0);}
+function findDirect(a,b){return S.threads.find(t=>!t.name&&t.members.length===2&&t.members.indexOf(a)>-1&&t.members.indexOf(b)>-1)||null;}
+function startDirect(otherId){const me=S.frontId;if(!me||otherId===me)return;let t=findDirect(me,otherId);if(!t){t={id:uid(),members:[me,otherId],name:'',msgs:[],created:Date.now()};S.threads.push(t);}_openThread=t.id;_newChat=null;_msgTime={};_editMsg=null;_scrollMsgBottom=true;markSeen(t);S.view='messages';save();render();}
+function openThread(id){_openThread=id;_newChat=null;_msgTime={};_editMsg=null;_renameThread=null;_scrollMsgBottom=true;const t=S.threads.find(x=>x.id===id);markSeen(t);S.view='messages';save();render();}
+function sendMsg(id){const t=S.threads.find(x=>x.id===id);if(!t)return;const el=document.querySelector('[data-k="msg-'+id+'"]');const text=el?el.value.trim():'';if(!text)return;if(!t.msgs)t.msgs=[];t.msgs.push({id:uid(),by:S.frontId,text:text,date:Date.now()});delete _msgDraft[id];_scrollMsgBottom=true;markSeen(t);save();render();}
+function toggleMsgTime(id){_msgTime[id]=!_msgTime[id];render();}
+function editMsgStart(id){_editMsg=id;_msgTime[id]=true;render();}
+function editMsgCancel(){_editMsg=null;render();}
+function editMsgSave(tid,mid){const t=S.threads.find(x=>x.id===tid);if(t){const m=(t.msgs||[]).find(x=>x.id===mid);const el=document.querySelector('[data-k="me-'+mid+'"]');if(m&&el){const v=el.value.trim();if(v){m.text=v;m.edited=Date.now();}}}_editMsg=null;save();render();}
+function delMsg(tid,mid){const t=S.threads.find(x=>x.id===tid);if(!t)return;openConfirm('Delete this message?','It will be removed from the chat.',()=>{t.msgs=(t.msgs||[]).filter(x=>x.id!==mid);_editMsg=null;save();render();});}
+function archiveThread(id){const t=S.threads.find(x=>x.id===id);if(!t)return;t.archived=true;_openThread=null;save();render();}
+function unarchiveThread(id){const t=S.threads.find(x=>x.id===id);if(!t)return;t.archived=false;save();render();}
+function leaveThread(id){const t=S.threads.find(x=>x.id===id);if(!t)return;openConfirm('Leave this group?','You\u2019ll be removed and it disappears from your chats. The others keep it.',()=>{t.members=t.members.filter(x=>x!==S.frontId);_openThread=null;save();render();});}
+function deleteThread(id){const t=S.threads.find(x=>x.id===id);if(!t)return;openConfirm('Delete this chat?','The whole conversation and its messages are removed. This can\u2019t be undone.',()=>{S.threads=S.threads.filter(x=>x.id!==id);_openThread=null;save();render();});}
+function toggleArchivedView(){_showArchived=!_showArchived;render();}
+function viewProfile(id){if(!id)return;S.selId=id;S.view='profiles';_msgTime={};_editMsg=null;render();}
+let _renameThread=null;
+function renameStart(id){_renameThread=id;render();}
+function renameCancel(){_renameThread=null;render();}
+function renameSave(id){const t=S.threads.find(x=>x.id===id);if(t){const el=document.querySelector('[data-k="tn-'+id+'"]');if(el)t.name=el.value.trim();}_renameThread=null;save();render();}
+function openNewChat(){_newChat={members:[],name:'',group:false,search:''};_openThread=null;render();}
+function cancelNewChat(){_newChat=null;render();}
+function setChatMode(g){if(!_newChat)return;_newChat.group=g;if(!g&&_newChat.members.length>1)_newChat.members=[_newChat.members[0]];render();}
+function toggleChatMember(id){if(!_newChat)return;if(!_newChat.group){_newChat.members=(_newChat.members[0]===id)?[]:[id];}else{const i=_newChat.members.indexOf(id);if(i>-1)_newChat.members.splice(i,1);else _newChat.members.push(id);}render();}
+function startNewChat(){if(!_newChat)return;const me=S.frontId;const mem=_newChat.members.filter(id=>id!==me);if(!mem.length)return;const nameEl=document.querySelector('[data-k="nc-name"]');const name=(_newChat.group&&nameEl)?nameEl.value.trim():'';_msgTime={};_editMsg=null;_scrollMsgBottom=true;if(mem.length===1&&!name){const ex=findDirect(me,mem[0]);if(ex){_openThread=ex.id;_newChat=null;markSeen(ex);S.view='messages';save();render();return;}}const t={id:uid(),members:[me].concat(mem),name:name,msgs:[],created:Date.now()};S.threads.push(t);_openThread=t.id;_newChat=null;markSeen(t);S.view='messages';save();render();}
+function messagesView(){
+  const threads=_showArchived?myArchived():myThreads();const narch=myArchived().length;
+  let list=`<div class="roster"><div style="padding:14px 14px 6px"><button class="tbtn tbtn-p" style="width:100%" onclick="openNewChat()">+ New chat</button></div><div style="display:flex;gap:6px;padding:0 14px 8px"><button class="navb${!_showArchived?' on':''}" onclick="if(_showArchived)toggleArchivedView()">Chats</button><button class="navb${_showArchived?' on':''}" onclick="if(!_showArchived)toggleArchivedView()">Archived${narch?' ('+narch+')':''}</button></div><div class="rlist hide-sb">`;
+  if(!threads.length)list+=`<div style="padding:24px 14px;color:var(--ink-s);font-size:13px;text-align:center;line-height:1.7">${_showArchived?'No archived chats.':'No chats yet.<br>Start one with \u201C+ New chat\u201D, or use a Message button on a prompt or someone\u2019s profile.'}</div>`;
+  list+=threads.map(t=>{const dir=!t.name&&t.members.length===2;const other=dir?S.alters.find(a=>a.id===t.members.find(id=>id!==S.frontId)):null;const u=unreadCount(t);const avHtml=other?`<div class="av" style="background:${bg(other.color)};color:${avInk(other.color)}">${other.photo?`<img src="${other.photo}">`:ini(other.name)}</div>`:`<div class="av" style="background:var(--sage-m);color:var(--on-accent)">\uD83D\uDC65</div>`;return `<div class="ritem${_openThread===t.id?' act':''}" onclick="openThread('${t.id}')">${avHtml}<div style="flex:1;min-width:0"><div class="ri-name" style="display:flex;justify-content:space-between;gap:6px"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap${u?';font-weight:600':''}">${esc(threadTitle(t))}</span><span style="font-size:11px;color:var(--ink-s);font-weight:400;flex-shrink:0">${fmtDate(lastMsgDate(t))}</span></div><div class="ri-role" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap${u?';color:var(--ink-m)':''}">${esc(lastMsgText(t))}</div></div>${u?`<div class="unread-badge">${u>9?'9+':u}</div>`:''}</div>`;}).join('');
+  list+=`</div></div>`;
+  let pane;
+  const cur=_openThread?S.threads.find(t=>t.id===_openThread&&t.members.indexOf(S.frontId)>-1):null;
+  if(_newChat)pane=newChatPane();
+  else if(cur)pane=convoPane(cur);
+  else pane=`<div class="panel hide-sb"><div class="empty"><div style="font-family:var(--serif);font-size:22px;color:var(--ink-m)">Messages</div><div>Pick a chat on the left, or start a new one.</div><button class="tbtn tbtn-p" onclick="openNewChat()">+ New chat</button></div></div>`;
+  return `<div class="shell">`+list+pane+`</div>`;
+}
+function convoPane(t){
+  const me=S.frontId;const group=t.members.length>2||!!t.name;const others=t.members.filter(id=>id!==me);
+  let acts=`<div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap">`;
+  acts+=`<button class="tbtn" style="font-size:12px;padding:5px 10px" onclick="${t.archived?`unarchiveThread('${t.id}')`:`archiveThread('${t.id}')`}">${t.archived?'Unarchive':'Archive'}</button>`;
+  if(group)acts+=`<button class="tbtn" style="font-size:12px;padding:5px 10px" onclick="leaveThread('${t.id}')">Leave</button>`;
+  acts+=`<button class="tbtn" style="font-size:12px;padding:5px 10px;color:var(--warm);border-color:#DFB79A" onclick="deleteThread('${t.id}')">Delete</button></div>`;
+  let titleHtml;
+  if(group&&_renameThread===t.id){
+    titleHtml=`<div style="display:flex;align-items:center;gap:8px"><input class="search" data-k="tn-${t.id}" style="margin:0;flex:1;min-width:0" value="${esc(t.name||'').replace(/"/g,'&quot;')}" placeholder="Group name" onkeydown="if(event.key==='Enter')renameSave('${t.id}')"><button class="tbtn tbtn-p" style="font-size:12px;padding:5px 10px" onclick="renameSave('${t.id}')">Save</button><button class="tbtn" style="font-size:12px;padding:5px 10px" onclick="renameCancel()">Cancel</button></div>`;
+  }else if(group){
+    titleHtml=`<span style="font-size:16px;font-family:var(--serif);color:var(--ink)">${t.name?esc(t.name):'<span style="color:var(--ink-s)">Unnamed group</span>'}</span><span style="margin-left:12px;font-size:12px;color:var(--ink-s);cursor:pointer;text-decoration:underline;text-decoration-color:var(--brd-s);text-underline-offset:2px" onclick="renameStart('${t.id}')" title="Rename group">\u270E ${t.name?'rename':'add name'}</span>`;
+  }else{
+    titleHtml=`<span class="lnk" style="font-size:16px;font-family:var(--serif);color:var(--ink)" onclick="viewProfile('${others[0]}')">${esc(threadTitle(t))}</span>`;
+  }
+  const subHtml=group?t.members.map(id=>`<span class="lnk" onclick="viewProfile('${id}')">${esc(aname(id))}</span>`).join(', '):'tap the name to open their profile';
+  let h=`<div class="convo"><div class="convo-head" style="display:flex;align-items:center;justify-content:space-between;gap:12px"><div style="min-width:0;flex:1">${titleHtml}${t.archived&&_renameThread!==t.id?' <span style="font-size:11px;color:var(--ink-s)">\u00B7 archived</span>':''}<div style="font-size:12px;color:var(--ink-s);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${subHtml}</div></div>${_renameThread===t.id?'':acts}</div><div class="msg-list hide-sb" id="msgScroll">`;
+  if(!t.msgs||!t.msgs.length)h+=`<div style="margin:auto;color:var(--ink-s);font-size:13px;text-align:center;line-height:1.6">No messages yet.<br>This chat is private to ${group?'its members':'the two of you'}.</div>`;
+  let lastMineId=null;(t.msgs||[]).forEach(m=>{if(m.by===me)lastMineId=m.id;});
+  let _lastDay=null;
+  (t.msgs||[]).forEach(m=>{const mine=m.by===me;
+    const dk=new Date(m.date).toDateString();if(dk!==_lastDay){h+=`<div class="msg-divider"><span>${esc(fmtDayLabel(m.date))}</span></div>`;_lastDay=dk;}
+    if(_editMsg===m.id&&mine){h+=`<div style="display:flex;flex-direction:column;align-items:flex-end;width:100%"><div class="editbox" style="width:80%"><textarea data-k="me-${m.id}" oninput="grow(this)">${esc(m.text)}</textarea><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px"><button class="tbtn" style="font-size:12px;padding:5px 12px" onclick="editMsgCancel()">Cancel</button><button class="tbtn tbtn-p" style="font-size:12px;padding:5px 12px" onclick="editMsgSave('${t.id}','${m.id}')">Save</button></div></div></div>`;return;}
+    const shown=_msgTime[m.id];
+    const who=(group&&!mine)?`<div class="msg-who lnk" onclick="viewProfile('${m.by}')">${esc(aname(m.by))}</div>`:'';
+    let receipt='';
+    if(mine&&m.id===lastMineId){const readers=others.filter(id=>((t.seen&&t.seen[id])||0)>=m.date);receipt=`<div class="msg-receipt">${group?(readers.length===others.length?'Read by everyone':(readers.length?'Read by '+readers.map(aname).join(', '):'Unread')):(readers.length?'Read':'Unread')}</div>`;}
+    h+=`<div style="display:flex;flex-direction:column;${mine?'align-items:flex-end':'align-items:flex-start'}">${who}<div class="msg ${mine?'me':'them'}" title="${fmtDateTime(m.date)}" onclick="toggleMsgTime('${m.id}')">${esc(m.text)}${m.edited?' <span style="opacity:.55;font-size:11px">(edited)</span>':''}</div>${shown?`<div class="msg-meta">${fmtDateTime(m.date)}${mine?` \u00B7 <span class="msg-act" onclick="editMsgStart('${m.id}')">Edit</span> \u00B7 <span class="msg-act" onclick="delMsg('${t.id}','${m.id}')">Delete</span>`:''}</div>`:''}${receipt}</div>`;});
+  h+=`</div>`;
+  const dr=_msgDraft[t.id]||'';
+  h+=`<div class="compose-bar"><textarea data-k="msg-${t.id}" placeholder="Message\u2026" oninput="_msgDraft['${t.id}']=this.value;grow(this)" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg('${t.id}')}">${esc(dr)}</textarea><button class="tbtn tbtn-p" onclick="sendMsg('${t.id}')">Send</button></div></div>`;
+  return h;
+}
+function newChatPane(){
+  const me=S.frontId;const q=_newChat.search||'';const others=sorted().filter(a=>a.id!==me&&matchAlter(a,q));const grp=_newChat.group;
+  let h=`<div class="panel hide-sb" style="display:flex;flex-direction:column;padding-bottom:0">`;
+  h+=`<div class="thy-head"><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px"><div><div class="thy-title">New chat</div><div class="pcard-meta">${grp?'Pick everyone for the group. Name it to save it, or leave the name blank for a quick one.':'Pick one alter for a private back-and-forth.'}</div></div><div style="display:flex;border:1px solid var(--brd-s);border-radius:999px;overflow:hidden;flex-shrink:0"><button class="navb${!grp?' on':''}" style="border-radius:0" onclick="setChatMode(false)">1:1</button><button class="navb${grp?' on':''}" style="border-radius:0" onclick="setChatMode(true)">Group</button></div></div></div>`;
+  h+=`<input class="search" data-k="nc-search" style="width:100%;margin:14px 0 4px" placeholder="Search alters\u2026" value="${esc(q).replace(/"/g,'&quot;')}" oninput="_newChat.search=this.value;render()">`;
+  h+=`<div style="flex:1;overflow-y:auto;padding-top:6px" class="hide-sb">`;
+  if(grp)h+=`<div class="seclbl">Group name</div><div class="field"><input data-k="nc-name" value="${esc(_newChat.name||'').replace(/"/g,'&quot;')}" placeholder="Optional \u2014 e.g. The Littles" oninput="_newChat.name=this.value"></div>`;
+  h+=`<div class="seclbl">Who\u2019s in it</div><div class="entry-grid" style="justify-content:flex-start">`+(others.length?others.map(a=>{const on=_newChat.members.indexOf(a.id)>-1;return `<div class="entry-card" style="${on?'border-color:var(--sage);background:var(--sage-l)':''}" onclick="toggleChatMember('${a.id}')"><div class="av" style="background:${bg(a.color)};color:${avInk(a.color)}">${a.photo?`<img src="${a.photo}">`:ini(a.name)}</div><div class="nm">${esc(a.name)}</div>${on?'<div style="font-size:11px;color:var(--sage)">\u2713 added</div>':''}</div>`;}).join(''):'<div style="color:var(--ink-s);font-size:13px;padding:20px">No match.</div>')+`</div>`;
+  h+=`</div>`;
+  h+=`<div style="position:sticky;bottom:0;background:var(--paper);border-top:1px solid var(--brd);padding:14px 0;display:flex;gap:8px"><button class="tbtn tbtn-p" ${_newChat.members.length?'':'disabled'} onclick="startNewChat()">${grp?'Start group':'Start chat'}</button><button class="tbtn" onclick="cancelNewChat()">Cancel</button></div>`;
+  h+=`</div>`;
+  return h;
+}
+function approveSugg(i){const a=active();if(!a||!a.suggestions)return;const s=a.suggestions[i];if(!s)return;if(s.field==='traits'){if(!a.traits)a.traits=[];if(!a.traits.includes(s.value))a.traits.push(s.value);}else if(s.field==='nicknames'){if(!a.nicknames)a.nicknames=[];if(!a.nicknames.includes(s.value))a.nicknames.push(s.value);}else{a[s.field]=s.value;}a.suggestions.splice(i,1);save();render();}
+function dismissSugg(i){const a=active();if(!a||!a.suggestions)return;a.suggestions.splice(i,1);save();render();}
+
+function newAlter(name){const a={id:uid(),name:name||'New alter',pronouns:'',role:'',age:'',color:COLORS[S.alters.length%COLORS.length],photo:'',nicknames:[],traits:[],notes:'',triggers:'',comforts:'',priv:{}};S.alters.push(a);S.selId=a.id;if(!S.frontId)S.frontId=a.id;save();render();}
+function delAlter(){const a=sel();if(!a)return;openConfirm('Delete '+a.name+'?','This removes their profile from this app. It does not touch your other versions.',()=>{S.alters=S.alters.filter(x=>x.id!==a.id);if(S.frontId===a.id)S.frontId=null;S.selId=S.alters[0]?S.alters[0].id:null;save();render();});}
+
+/* ============ PHOTO ============ */
+function pickPhoto(){document.getElementById('photoImp').click();}
+document.getElementById('photoImp').addEventListener('change',e=>{
+  const f=e.target.files[0];if(!f)return;const a=sel();if(!a)return;
+  const r=new FileReader();
+  r.onload=ev=>{const img=new Image();img.onload=()=>{
+    const M=256;let w=img.width,h=img.height,s=Math.min(1,M/Math.max(w,h));w=Math.round(w*s);h=Math.round(h*s);
+    const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);
+    a.photo=c.toDataURL('image/jpeg',.85);save();render();
+  };img.src=ev.target.result;};
+  r.readAsDataURL(f);e.target.value='';
+});
+
+/* ============ IMPORT / EXPORT ============ */
+function findAlters(obj,depth){
+  if(!obj||depth>6)return null;
+  if(Array.isArray(obj)){
+    if(obj.length&&obj.some(x=>x&&typeof x==='object'&&'name'in x&&('pronouns'in x||'role'in x||'triggers'in x||'comforts'in x)))return obj;
+    for(const it of obj){const r=findAlters(it,depth+1);if(r)return r;}
+    return null;
+  }
+  if(typeof obj==='object'){
+    if(obj.alters)return findAlters(obj.alters,depth+1)||obj.alters;
+    for(const k in obj){const r=findAlters(obj[k],depth+1);if(r)return r;}
+  }
+  return null;
+}
+/* Simply Plural export → alters. Resolves desc, custom-field age, group membership. */
+function isPlural(d){return d&&Array.isArray(d.members)&&Array.isArray(d.customFields);}
+function parsePlural(d){
+  const cf={};(d.customFields||[]).forEach(c=>{cf[c._id]=c.name;});
+  const gm={};(d.groups||[]).forEach(g=>(g.members||[]).forEach(mid=>{(gm[mid]=gm[mid]||[]).push(g.name);}));
+  return (d.members||[]).map(m=>{
+    const info=m.info||{};const extra={};let age='';const nicks=[];
+    for(const k in info){const label=cf[k]||k,val=info[k];if(!val)continue;if(/age/i.test(label))age=val;else if(/other names|nickname|alt name/i.test(label))(''+val).split(/[,;\/\n]+/).map(t=>t.trim()).filter(Boolean).forEach(n=>nicks.push(n));else extra[label]=val;}
+    const grps=gm[m._id]||[];if(grps.length)extra.Groups=grps.join(', ');
+    return {id:uid(),name:m.name||'Unnamed',pronouns:m.pronouns||'',role:'',age:age,color:(m.color&&/^#/.test(m.color))?m.color:COLORS[0],photo:'',nicknames:nicks,traits:[],notes:m.desc||'',triggers:'',comforts:'',priv:{},extra:Object.keys(extra).length?extra:undefined};
+  });
+}
+function mapGeneric(o){
+  return {id:uid(),name:o.name||'Unnamed',pronouns:o.pronouns||'',role:o.role||'',age:o.age||'',color:o.color||COLORS[0],photo:o.photo||'',nicknames:Array.isArray(o.nicknames)?o.nicknames.slice():[],traits:Array.isArray(o.traits)?o.traits.slice():[],notes:o.notes||o.desc||'',triggers:o.triggers||'',comforts:o.comforts||'',priv:(()=>{const p={};if(o.fieldVisibility)for(const k in o.fieldVisibility){if(o.fieldVisibility[k]==='invisible')p[k]=true;}return p;})()};
+}
+/* Faithful restore from a System Library backup: keep everything, including the
+   original id (so prompts still know who asked), privacy flags, and answers. */
+function mapBackup(o){
+  return {id:o.id||uid(),name:o.name||'Unnamed',pronouns:o.pronouns||'',role:o.role||'',age:o.age||'',color:o.color||COLORS[0],photo:o.photo||'',nicknames:Array.isArray(o.nicknames)?o.nicknames.slice():[],traits:Array.isArray(o.traits)?o.traits.slice():[],notes:o.notes||'',triggers:o.triggers||'',comforts:o.comforts||'',priv:(o.priv&&typeof o.priv==='object')?Object.assign({},o.priv):{},suggestions:Array.isArray(o.suggestions)?JSON.parse(JSON.stringify(o.suggestions)):[],answers:Array.isArray(o.answers)?JSON.parse(JSON.stringify(o.answers)):[],extra:o.extra,acceptSuggestions:o.acceptSuggestions,prefs:(o.prefs&&typeof o.prefs==='object')?Object.assign({},o.prefs):undefined};
+}
+function doImport(){document.getElementById('fileImp').click();}
+function importFile(f){
+  if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    let data;try{data=JSON.parse(ev.target.result);}catch(err){openConfirm('Could not read file','That file is not valid JSON.',null,true);return;}
+    const isBackup=data&&(data.app==='system-library'||(Array.isArray(data.alters)&&data.alters.some(a=>a&&(a.priv||Array.isArray(a.answers)||Array.isArray(a.suggestions)))));
+    let mapped=null,src='',backupPrompts=null,backupThreads=null;
+    if(isPlural(data)){mapped=parsePlural(data);src='Simply Plural';}
+    else if(isBackup){mapped=(data.alters||[]).map(mapBackup);src='System Library backup';backupPrompts=Array.isArray(data.prompts)?data.prompts:[];backupThreads=Array.isArray(data.threads)?data.threads:[];}
+    else{const found=findAlters(data,0);if(found&&found.length){mapped=found.map(mapGeneric);src='backup';}}
+    if(!mapped||!mapped.length){
+      const looksProjects=data&&JSON.stringify(data).indexOf('milestones')>-1;
+      openConfirm('No alters found',looksProjects?'This looks like a Projects export, not a roster \u2014 it has no alters in it.':'Couldn\u2019t find an alter list in that file.',null,true);
+      return;
+    }
+    const have=new Set(S.alters.map(a=>(a.name||'').toLowerCase()));
+    const fresh=mapped.filter(m=>!have.has((m.name||'').toLowerCase()));
+    const skipped=mapped.length-fresh.length;
+    const newPrompts=backupPrompts?backupPrompts.filter(p=>!S.prompts.some(x=>x.id===p.id)):[];
+    if(!fresh.length&&!newPrompts.length){openConfirm('Nothing new to import','Everything in that file is already here (matched by name). Nothing added.',null,true);return;}
+    openConfirm('Import '+fresh.length+' alters?','From your '+src+'.'+(skipped?' '+skipped+' already here were skipped (matched by name).':'')+(newPrompts.length?' Your '+newPrompts.length+' saved prompts will be restored too.':'')+' Your original file stays untouched.',()=>{
+      S.alters=S.alters.concat(fresh);
+      newPrompts.forEach(p=>S.prompts.push(p));
+      if(backupThreads)backupThreads.filter(t=>!S.threads.some(x=>x.id===t.id)).forEach(t=>S.threads.push(t));
+      if(!S.selId&&S.alters[0])S.selId=sorted()[0].id;save();render();
+    });
+  };
+  r.readAsText(f);
+}
+document.getElementById('fileImp').addEventListener('change',e=>{const f=e.target.files[0];importFile(f);e.target.value='';});
+function openPrefs(){
+  const a=active();if(!a)return;const pf=a.prefs||{};const dark=!!pf.dark;const fs=pf.fs||'m';const accept=a.acceptSuggestions!==false;
+  const seg=(on,fn,lbl)=>`<button class="navb${on?' on':''}" style="border-radius:0" onclick="${fn}">${lbl}</button>`;
+  const grp=inner=>`<div style="display:inline-flex;border:1px solid var(--brd-s);border-radius:8px;overflow:hidden">${inner}</div>`;
+  document.getElementById('mods').innerHTML=`<div class="ov" onmousedown="ovDown(event)" onclick="ovClick(event)"><div class="modal"><h3>Preferences \u2014 ${esc(a.name)}</h3><div style="font-size:12px;color:var(--ink-s);margin:-4px 0 14px;line-height:1.6">These belong to ${esc(a.name)} \u2014 they change automatically when the active alter changes.</div><div class="pref-row"><div class="pref-lbl">Theme</div>${grp(seg(!dark,"setPref('dark',false)",'Light')+seg(dark,"setPref('dark',true)",'Dark'))}</div><div class="pref-row"><div class="pref-lbl">Font size</div>${grp(seg(fs==='s',"setPref('fs','s')",'Small')+seg(fs==='m',"setPref('fs','m')",'Medium')+seg(fs==='l',"setPref('fs','l')",'Large'))}</div><div class="pref-row"><div class="pref-lbl">Accept suggestions from others</div>${grp(seg(accept,"setAcceptSugg(true)",'On')+seg(!accept,"setAcceptSugg(false)",'Off'))}</div><div class="modal-btns" style="margin-top:18px"><button class="tbtn tbtn-p" onclick="closeModal()">Done</button></div></div></div>`;
+}
+function setPref(k,v){const a=active();if(!a)return;if(!a.prefs)a.prefs={};a.prefs[k]=v;save();applyPrefs();openPrefs();}
+function setAcceptSugg(v){const a=active();if(!a)return;a.acceptSuggestions=v;save();openPrefs();}
+function openSettings(){
+  document.getElementById('mods').innerHTML=`<div class="ov" onmousedown="ovDown(event)" onclick="ovClick(event)"><div class="modal"><h3>Settings</h3><div style="display:flex;flex-direction:column;gap:10px;margin-top:8px"><button class="tbtn" onclick="doExport()">Export</button><button class="tbtn" onclick="doImport()">Import</button><button class="tbtn" style="color:var(--warm);border-color:#DFB79A" onclick="deleteAllAlters()">Delete all alters\u2026</button></div><div style="font-size:12px;color:var(--ink-s);margin-top:14px;line-height:1.6">More will live here later \u2014 themes, font size, and per-alter preferences.</div><div class="modal-btns" style="margin-top:16px"><button class="tbtn tbtn-p" onclick="closeModal()">Done</button></div></div></div>`;
+}
+function deleteAllAlters(){
+  if(!S.alters.length){openConfirm('Nothing to delete','There are no alters in this app yet.',null,true);return;}
+  document.getElementById('mods').innerHTML=`<div class="ov" onmousedown="ovDown(event)" onclick="ovClick(event)"><div class="modal"><h3>Delete all ${S.alters.length} alters?</h3><p>This clears every alter from <b>this clean app only</b>. Your Simply Plural and other backups are untouched. Type DELETE to confirm.</p><input id="delConf" placeholder="Type DELETE" oninput="document.getElementById('delGo').disabled=this.value!=='DELETE'" onkeydown="if(event.key==='Enter'&&this.value==='DELETE')confirmDeleteAll()"><div class="modal-btns"><button class="tbtn" onclick="closeModal()">Cancel</button><button id="delGo" class="tbtn del" disabled onclick="confirmDeleteAll()">Delete all</button></div></div></div>`;
+  setTimeout(()=>{const i=document.getElementById('delConf');if(i)i.focus();},30);
+}
+function confirmDeleteAll(){S.alters=[];S.frontId=null;S.coId=null;S.selId=null;save();closeModal();render();}
+function doExport(){
+  try{
+    const data=JSON.stringify({app:'system-library',alters:S.alters,frontId:S.frontId,coId:S.coId,prompts:S.prompts,threads:S.threads},null,2);
+    const blob=new Blob([data],{type:'application/json'});
+    const u=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=u;a.download='system_library_backup_'+new Date().toISOString().slice(0,10)+'.json';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(u),1500);
+  }catch(err){alert('Export failed: '+(err&&err.message?err.message:err));}
+}
+
+/* ============ MODALS ============ */
+let _confirmFn=null;
+function openConfirm(title,msg,onYes,infoOnly){
+  _confirmFn=onYes;
+  document.getElementById('mods').innerHTML=`<div class="ov" onmousedown="ovDown(event)" onclick="ovClick(event)"><div class="modal"><h3>${title}</h3><p>${msg}</p><div class="modal-btns">${infoOnly?'<button class="tbtn-p tbtn" onclick="closeModal()">OK</button>':'<button class="tbtn" onclick="closeModal()">Cancel</button><button class="tbtn tbtn-p" onclick="confirmYes()">Confirm</button>'}</div></div></div>`;
+}
+function confirmYes(){const fn=_confirmFn;closeModal();if(fn)fn();}
+function closeModal(){document.getElementById('mods').innerHTML='';_confirmFn=null;}
+/* only dismiss if the click both started and ended on the backdrop itself —
+   stops a text-selection drag that ends on the backdrop from closing the modal */
+let _ovDown=false;
+function ovDown(e){_ovDown=(e.target===e.currentTarget);}
+function ovClick(e){if(e.target===e.currentTarget&&_ovDown)closeModal();}
+function openNewAlter(){
+  document.getElementById('mods').innerHTML=`<div class="ov" onmousedown="ovDown(event)" onclick="ovClick(event)"><div class="modal"><h3>Add an alter</h3><p>Just a name to start \u2014 everything else is optional.</p><input id="naName" placeholder="Name" autofocus onkeydown="if(event.key==='Enter')submitNewAlter()"><div class="modal-btns"><button class="tbtn" onclick="closeModal()">Cancel</button><button class="tbtn tbtn-p" onclick="submitNewAlter()">Add</button></div></div></div>`;
+  setTimeout(()=>{const i=document.getElementById('naName');if(i)i.focus();},30);
+}
+function submitNewAlter(){const v=document.getElementById('naName').value.trim();closeModal();newAlter(v);}
+
+/* ============ RENDER ============ */
+function eyeBtn(f){const a=sel();const p=isPriv(a,f);return `<button class="eye${p?' off':''}" title="${p?'Private \u2014 click to make visible':'Visible \u2014 click to mark private'}" onclick="togglePriv('${f}')">${p?'\u2298':'\u25C9'}</button>${p?'<span class="priv-tag">private</span>':''}`;}
+
+/* Preserve scroll + focus + caret across full re-renders.
+   Root fix for: jump-to-top on any change, search losing focus, view resets. */
+function captureUI(){
+  const p=document.querySelector('.panel'),r=document.querySelector('.rlist'),en=document.querySelector('.entry'),vs=document.querySelector('.vscroll'),ms=document.getElementById('msgScroll'),ae=document.activeElement;
+  let focus=null;
+  if(ae&&ae.dataset&&ae.dataset.k){let s=null,e=null;try{s=ae.selectionStart;e=ae.selectionEnd;}catch(x){}focus={k:ae.dataset.k,s,e};}
+  return {p:p?p.scrollTop:0,r:r?r.scrollTop:0,en:en?en.scrollTop:0,vs:vs?vs.scrollTop:0,ms:ms?ms.scrollTop:0,focus};
+}
+function restoreUI(ui){
+  const p=document.querySelector('.panel'),r=document.querySelector('.rlist'),en=document.querySelector('.entry'),vs=document.querySelector('.vscroll'),ms=document.getElementById('msgScroll');
+  if(p)p.scrollTop=ui.p;if(r)r.scrollTop=ui.r;if(en)en.scrollTop=ui.en;if(vs)vs.scrollTop=ui.vs;if(ms)ms.scrollTop=ui.ms;
+  if(ui.focus){const el=document.querySelector('[data-k="'+ui.focus.k+'"]');if(el){el.focus();if(ui.focus.s!=null){try{el.setSelectionRange(ui.focus.s,ui.focus.e);}catch(x){}}}}
+}
+
+function render(){
+  const ui=captureUI();
+  applyPrefs();
+  applyAccent();
+  if(!S.frontId){document.getElementById('root').innerHTML=entryScreen();restoreUI(ui);return;}
+  const fr=active(),co=S.coId?S.alters.find(a=>a.id===S.coId):null;
+  let top=`<div class="top"><div class="brand">System Library</div><div class="nav"><button class="navb${S.view==='profiles'?' on':''}" onclick="setView('profiles')">Profiles</button><button class="navb${S.view==='prompts'?' on':''}" onclick="setView('prompts')">Prompts</button><button class="navb${S.view==='therapy'?' on':''}" onclick="setView('therapy')">Therapy</button><button class="navb${S.view==='messages'?' on':''}" onclick="setView('messages')">Messages${anyUnread()?'<span class="nav-dot"></span>':''}</button></div><div class="top-sp"></div>`;
+  top+=`<div class="act-chip" onclick="goOwnProfile()" title="Go to your profile"><div class="av" style="background:${bg(fr.color)};color:${avInk(fr.color)}">${fr.photo?`<img src="${fr.photo}">`:ini(fr.name)}</div><div><div class="lbl">Active</div><div class="nm">${fr.name}</div></div></div>`;
+  if(co)top+=`<div class="co-chip"><div class="av" style="background:${bg(co.color)};color:${avInk(co.color)}">${co.photo?`<img src="${co.photo}">`:ini(co.name)}</div><span style="font-size:13px;color:var(--ink-m)">${co.name}</span><button class="ico-btn" style="width:24px;height:24px;font-size:13px" onclick="swapActive()" title="Swap active \u2194 co-front">\u21C4</button><button class="ico-btn" style="width:24px;height:24px;font-size:14px" onclick="clearCo()" title="Remove co-front">\u00D7</button></div>`;
+  else top+=`<button class="tbtn" onclick="openPicker(true)">+ Co-front</button>`;
+  top+=`<button class="ico-btn" onclick="openSettings()" title="Settings">\u2699</button>`;
+  top+=`<button class="ico-btn" onclick="lockApp()" title="Step away (locks the app)">\u23FB</button>`;
+  top+=`</div>`;
+
+  const list=sorted().filter(a=>matchAlter(a,S.search||''));
+  let roster=`<div class="roster"><input class="search" data-k="search" placeholder="Search alters\u2026" value="${(S.search||'').replace(/"/g,'&quot;')}" oninput="S.search=this.value;render()"><div class="rlist hide-sb">`;
+  if(!S.alters.length){roster+=`<div style="padding:30px 14px;color:var(--ink-s);font-size:13px;text-align:center;">No alters yet.</div>`;}
+  roster+=list.map(a=>`<div class="ritem${S.selId===a.id?' act':''}" onclick="selectAlter('${a.id}')"><div class="av" style="background:${bg(a.color)};color:${avInk(a.color)}">${a.photo?`<img src="${a.photo}">`:ini(a.name)}</div><div style="flex:1;min-width:0"><div class="ri-name">${a.name}</div>${(a.role&&!isPriv(a,'role'))?`<div class="ri-role">${a.role}</div>`:''}</div>${S.frontId===a.id?'<div class="front-dot"></div>':''}</div>`).join('');
+  roster+=`</div></div>`;
+
+  const a=sel();
+  let panel='<div class="panel hide-sb">';
+  if(!S.alters.length){
+    panel+=`<div class="empty"><div style="font-family:var(--serif);font-size:24px;color:var(--ink-m)">Welcome</div><div>Start fresh, or bring your roster across.</div><div style="display:flex;gap:10px;margin-top:6px"><button class="tbtn tbtn-p" onclick="openNewAlter()">+ Add first alter</button><button class="tbtn" onclick="doImport()">Import from v24 backup</button></div></div>`;
+  }else if(!a){
+    panel+=`<div class="empty">Select an alter from the list.</div>`;
+  }else{
+    const own=a.id===S.frontId;const bits=summaryBits(a);
+    const show=f=>own||!isPriv(a,f);const dis=own?'':'disabled';const eye=f=>own?eyeBtn(f):'';
+    panel+=`<div class="phead"><div class="bigav" style="background:${bg(a.color)};color:${avInk(a.color)}">${a.photo?`<img src="${a.photo}">`:ini(a.name)}${own?`<div class="edit" onclick="pickPhoto()" title="Change photo">\u270E</div>`:''}</div><div><div class="pname">${a.name||'\u2014'}</div><div class="psub"><span class="pill ${own?'pill-on':'pill-off'}">${own?'Active':'Not active'}</span>${bits?`<span>${bits}</span>`:''}</div></div></div>`;
+
+    panel+=`<div class="banner ${own?'banner-edit':'banner-view'}">${own?'\u270E Editing your own profile':'\uD83D\uDD12 Viewing '+a.name+' \u2014 read-only. Only '+a.name+' can edit this.'}</div>`;
+    if(!own)panel+=`<div style="margin:-8px 0 18px"><button class="tbtn tbtn-p" onclick="startDirect('${a.id}')">\uD83D\uDCAC Message ${esc(a.name)}</button></div>`;
+    if(own)panel+=`<div style="margin:-8px 0 18px"><button class="tbtn" onclick="openPrefs()">\u2699 Preferences</button></div>`;
+
+    if(own&&(a.suggestions||[]).length){
+      panel+=`<div class="seclbl">Suggestions from others</div><div class="sugg-list">`+a.suggestions.map((s,i)=>`<div class="sugg"><div class="sugg-txt"><b>${aname(s.by)}</b> suggests ${FIELD_LABEL[s.field]||s.field}: <span class="tag" style="display:inline-flex">${s.value}</span></div><div class="sugg-btns"><button class="tbtn tbtn-p" style="padding:5px 10px;font-size:12px" onclick="approveSugg(${i})">Add</button><button class="tbtn" style="padding:5px 10px;font-size:12px" onclick="dismissSugg(${i})">Dismiss</button></div></div>`).join('')+`</div>`;
+    }
+    if(!own){
+      if(a.acceptSuggestions===false){panel+=`<div class="banner banner-view">${a.name} isn\u2019t accepting suggestions right now.</div>`;}
+      else{
+        const mine=(a.suggestions||[]).filter(s=>s.by===S.frontId);
+        panel+=`<div class="suggest-card"><div class="suggest-card-h">\u2726 Suggest something for ${a.name}</div><div class="add-row"><div class="cust-sel"><button class="sel" onclick="toggleSugg()">${suggLabel(_suggField)}</button>${_suggOpen?`<div class="sel-back" onclick="_suggOpen=false;render()"></div><div class="sel-list">${SUGG_OPTS.map(o=>`<div class="sel-opt${_suggField===o[0]?' on':''}" onclick="chooseSugg('${o[0]}')">${o[1]}</div>`).join('')}</div>`:''}</div><input class="taginput" data-k="suggval" placeholder="Type your suggestion, then press Enter or the Suggest button" onkeydown="if(event.key==='Enter')doSuggest('${a.id}')"><button class="add-btn" onclick="doSuggest('${a.id}')">Suggest</button></div>${mine.length?`<div style="font-size:12px;color:var(--ink-m);margin-top:8px">Waiting on ${a.name} to approve: ${mine.map(s=>(FIELD_LABEL[s.field]||s.field)+' \u2014 '+s.value).join(', ')}</div>`:''}<div style="font-size:12px;color:var(--ink-m);margin-top:6px">They choose whether to add it. Name can\u2019t be suggested.</div></div>`;
+      }
+    }
+
+    let idf=`<div class="field"><label>Name</label><input data-k="f-name" value="${(a.name||'').replace(/"/g,'&quot;')}" ${dis} oninput="set('name',this.value)" onchange="render()"></div>`;
+    if(show('pronouns'))idf+=`<div class="field"><label>Pronouns ${eye('pronouns')}</label><input data-k="f-pronouns" value="${(a.pronouns||'').replace(/"/g,'&quot;')}" ${dis} oninput="set('pronouns',this.value)" onchange="render()"></div>`;
+    if(show('role'))idf+=`<div class="field"><label>Role ${eye('role')}</label><input data-k="f-role" value="${(a.role||'').replace(/"/g,'&quot;')}" ${dis} oninput="set('role',this.value)" onchange="render()"></div>`;
+    if(show('age'))idf+=`<div class="field"><label>Age ${eye('age')}</label><input data-k="f-age" value="${(a.age||'').replace(/"/g,'&quot;')}" ${dis} oninput="set('age',this.value)" onchange="render()"></div>`;
+    panel+=`<div class="seclbl">Identity</div><div class="grid2">${idf}</div>`;
+
+    if(show('nicknames')){const ng=(a.nicknames||[]).map((t,i)=>`<span class="tag">${t}${own?`<span class="tag-x" onclick="rmNick(${i})">\u00D7</span>`:''}</span>`).join('')||'<span style="font-size:12px;color:var(--ink-s);font-style:italic">No nicknames</span>';panel+=`<div class="seclbl">Nicknames &amp; alt names ${eye('nicknames')}</div><div class="tags">${ng}</div>${own?`<div class="add-row"><input class="taginput" data-k="nickinput" placeholder="Type a nickname, then press Enter or the Add button" onkeydown="if(event.key==='Enter')addFromInput('nickinput',addNick)"><button class="add-btn" onclick="addFromInput('nickinput',addNick)">Add</button></div>`:''}`;}
+
+    if(own){const pal=COLORS.indexOf(a.color)>-1?COLORS:[a.color].concat(COLORS);panel+=`<div class="seclbl">Colour</div><div class="cols">${pal.map(c=>`<div class="csw${a.color===c?' on':''}" style="background:${c}" onclick="pickColor('${c}')" title="${COLORS.indexOf(c)<0?'Imported colour':''}"></div>`).join('')}<label class="csw csw-custom" title="Pick any colour"><span>+</span><input type="color" value="${/^#[0-9a-fA-F]{6}$/.test(a.color)?a.color:'#5C7A6E'}" onchange="pickColor(this.value)"></label></div>`;}
+
+    if(show('traits')){const tg=(a.traits||[]).map((t,i)=>`<span class="tag">${t}${own?`<span class="tag-x" onclick="rmTrait(${i})">\u00D7</span>`:''}</span>`).join('')||'<span style="font-size:12px;color:var(--ink-s);font-style:italic">No traits</span>';panel+=`<div class="seclbl">Traits ${eye('traits')}</div><div class="tags">${tg}</div>${own?`<div class="add-row"><input class="taginput" data-k="traitinput" placeholder="Type a trait, then press Enter or the Add button" onkeydown="if(event.key==='Enter')addFromInput('traitinput',addTrait)"><button class="add-btn" onclick="addFromInput('traitinput',addTrait)">Add</button></div>`:''}`;}
+
+    if(show('notes'))panel+=`<div class="seclbl">Notes ${eye('notes')}</div><div class="field"><textarea data-k="f-notes" ${dis} oninput="set('notes',this.value);grow(this)" placeholder="Anything to remember\u2026">${a.notes||''}</textarea></div>`;
+
+    if(own&&(a.answers||[]).length)panel+=`<div class="seclbl">Therapy</div><button class="tbtn" onclick="setView('therapy')">View your therapy answers (${(a.answers||[]).length}) \u2192</button>`;
+
+    if(own)panel+=`<div class="danger"><button class="del" onclick="delAlter()">Delete ${a.name}</button></div>`;
+  }
+  panel+='</div>';
+
+  const content=S.view==='prompts'?('<div class="vscroll">'+promptsView()+'</div>'):(S.view==='therapy'?('<div class="vscroll">'+therapyView()+'</div>'):(S.view==='messages'?messagesView():('<div class="shell">'+roster+panel+'</div>')));
+  document.getElementById('root').innerHTML=top+content;
+  document.querySelectorAll('#root textarea').forEach(grow);
+  restoreUI(ui);
+  const _ms=document.getElementById('msgScroll');if(_ms&&_scrollMsgBottom){_ms.scrollTop=_ms.scrollHeight;}_scrollMsgBottom=false;
+}
+
+load();
+if(S.frontId)S.selId=S.frontId;
+render();
+</script>
+</body>
+</html>
